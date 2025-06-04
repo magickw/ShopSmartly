@@ -1,4 +1,5 @@
 import { useParams, useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3 } from "lucide-react";
@@ -13,15 +14,43 @@ export default function ProductDetail() {
   const params = useParams<{ barcode: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [needsScan, setNeedsScan] = useState(false);
 
-  const { data: scanResult, isLoading } = useQuery<ScanResult>({
+  const { data: scanResult, isLoading, error } = useQuery<ScanResult>({
     queryKey: [`/api/products`, params.barcode],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/products/${params.barcode}`);
       return response.json();
     },
     enabled: !!params.barcode,
+    retry: false,
   });
+
+  const scanMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/scan", { barcode: params.barcode });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setNeedsScan(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/products`, params.barcode] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Scan Failed",
+        description: error.message || "Failed to scan product",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // If product not found, trigger scan automatically
+  useEffect(() => {
+    if (error && error.message.includes("Product not found") && !needsScan && !scanMutation.isPending) {
+      setNeedsScan(true);
+      scanMutation.mutate();
+    }
+  }, [error, needsScan, scanMutation]);
 
   const addToFavoritesMutation = useMutation({
     mutationFn: async () => {
