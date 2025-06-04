@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { Camera, QrCode, ChevronRight, Keyboard } from "lucide-react";
+import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ScanHistory } from "@shared/schema";
 
@@ -141,6 +141,26 @@ export default function Scanner() {
           </div>
         </div>
       )}
+
+      {/* Buy Me a Coffee Donation */}
+      <div className="mt-8 pt-6 border-t border-gray-100">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-3">
+            <Heart className="h-5 w-5 text-red-500 mr-2" />
+            <span className="text-sm text-gray-600">Support this app</span>
+          </div>
+          <Button
+            onClick={() => window.open('https://buymeacoffee.com/yourhandle', '_blank')}
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-medium py-3 px-6 rounded-xl transition-colors"
+          >
+            <Coffee className="h-4 w-4 mr-2" />
+            Buy me a coffee
+          </Button>
+          <p className="text-xs text-gray-500 mt-2">
+            Help keep this app free and improve features
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
