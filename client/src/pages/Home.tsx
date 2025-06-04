@@ -4,9 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3 } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import BannerAd from "@/components/BannerAd";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { data: homeAds = [] } = useQuery({
+    queryKey: ["/api/ads/home"],
+    queryFn: () => fetch("/api/ads/home").then(res => res.json()),
+  });
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -16,6 +25,13 @@ export default function Home() {
     const first = firstName?.charAt(0) || "";
     const last = lastName?.charAt(0) || "";
     return first + last || "U";
+  };
+
+  const handleAdDismiss = (adId: number) => {
+    toast({
+      title: "Ad dismissed",
+      description: "This ad has been hidden from your view.",
+    });
   };
 
   return (
@@ -48,6 +64,20 @@ export default function Home() {
             Sign Out
           </Button>
         </div>
+
+        {/* Banner Ads */}
+        {homeAds.length > 0 && (
+          <div className="mb-8 space-y-4">
+            {homeAds.map((ad) => (
+              <BannerAd
+                key={ad.id}
+                ad={ad}
+                placement="home"
+                onDismiss={() => handleAdDismiss(ad.id)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Quick Actions Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
