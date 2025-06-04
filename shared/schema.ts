@@ -1,7 +1,29 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Session storage table for authentication
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -37,12 +59,14 @@ export const scanHistory = pgTable("scan_history", {
 
 export const favorites = pgTable("favorites", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
   productId: integer("product_id").notNull().references(() => products.id),
   addedAt: timestamp("added_at").defaultNow(),
 });
 
 export const shoppingListItems = pgTable("shopping_list_items", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").default(1),
   completed: boolean("completed").default(false),
@@ -111,6 +135,14 @@ export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems
   id: true,
   addedAt: true,
 });
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;

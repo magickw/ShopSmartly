@@ -150,7 +150,7 @@ export default function Scanner() {
             <span className="text-sm text-gray-600">Support this app</span>
           </div>
           <Button
-            onClick={() => window.open('https://buymeacoffee.com/yourhandle', '_blank')}
+            onClick={() => window.open('https://buymeacoffee.com/bfguo', '_blank')}
             className="bg-yellow-400 hover:bg-yellow-500 text-black font-medium py-3 px-6 rounded-xl transition-colors"
           >
             <Coffee className="h-4 w-4 mr-2" />
