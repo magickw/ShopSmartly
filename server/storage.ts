@@ -324,19 +324,40 @@ export class MemStorage implements IStorage {
         name: "iPhone 15 Pro Max",
         brand: "Apple",
         description: "Latest flagship smartphone with A17 Pro chip, titanium design, and pro camera system",
-        imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
+        imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        ecoScore: 72,
+        carbonFootprint: "70kg CO2e",
+        recyclingInfo: "Device can be recycled through Apple's trade-in program. Remove personal data before recycling.",
+        sustainabilityCertifications: ["Energy Star", "EPEAT Gold"],
+        packagingType: "Recyclable",
+        isEcoFriendly: true
       },
       {
         barcode: "789012345678",
         name: "Coca-Cola Classic",
         brand: "Coca-Cola",
         description: "Classic cola soft drink",
-        imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
+        imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
+        ecoScore: 45,
+        carbonFootprint: "0.33kg CO2e",
+        recyclingInfo: "Aluminum can is 100% recyclable. Please rinse before recycling.",
+        sustainabilityCertifications: ["Rainforest Alliance"],
+        packagingType: "Recyclable",
+        isEcoFriendly: false
       }
     ];
 
     sampleProducts.forEach(productData => {
-      const product: Product = { id: this.currentProductId++, ...productData };
+      const product: Product = { 
+        id: this.currentProductId++, 
+        ...productData,
+        ecoScore: productData.ecoScore || null,
+        carbonFootprint: productData.carbonFootprint || null,
+        recyclingInfo: productData.recyclingInfo || null,
+        sustainabilityCertifications: productData.sustainabilityCertifications || null,
+        packagingType: productData.packagingType || null,
+        isEcoFriendly: productData.isEcoFriendly || null
+      };
       this.products.set(product.id, product);
 
       // Add prices for each retailer

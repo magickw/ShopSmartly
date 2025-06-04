@@ -5,6 +5,7 @@ import { ArrowLeft, Heart, ShoppingCart } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import EcoFriendlyComparison from "@/components/EcoFriendlyComparison";
 import type { ScanResult } from "@shared/schema";
 
 export default function ProductDetail() {

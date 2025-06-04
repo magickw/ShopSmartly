@@ -32,6 +32,12 @@ export const products = pgTable("products", {
   brand: text("brand"),
   description: text("description"),
   imageUrl: text("image_url"),
+  ecoScore: integer("eco_score"), // 1-100 overall environmental score
+  carbonFootprint: text("carbon_footprint"), // CO2 equivalent in kg
+  recyclingInfo: text("recycling_info"), // Recycling instructions
+  sustainabilityCertifications: text("sustainability_certifications").array(), // Organic, Fair Trade, etc.
+  packagingType: text("packaging_type"), // Plastic, Cardboard, Glass, etc.
+  isEcoFriendly: boolean("is_eco_friendly").default(false),
 });
 
 export const retailers = pgTable("retailers", {
