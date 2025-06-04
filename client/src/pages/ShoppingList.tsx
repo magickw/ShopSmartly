@@ -279,8 +279,8 @@ export default function ShoppingList() {
                     className="mt-1"
                   />
                 </div>
-                <div className="flex space-x-2">
-                  <div className="flex-1">
+                <div className="flex space-x-3">
+                  <div className="w-24">
                     <Label htmlFor="item-quantity">Quantity</Label>
                     <Input
                       id="item-quantity"
@@ -288,16 +288,16 @@ export default function ShoppingList() {
                       min="1"
                       value={newItemQuantity}
                       onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
-                      className="mt-1"
+                      className="mt-1 text-center text-lg font-semibold"
                     />
                   </div>
-                  <div className="flex-2">
+                  <div className="flex-1">
                     <Label htmlFor="item-price">Unit Price (Optional)</Label>
                     <Input
                       id="item-price"
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(e.target.value)}
-                      placeholder="e.g., $2.99"
+                      placeholder="$2.99"
                       className="mt-1"
                     />
                   </div>
@@ -396,20 +396,25 @@ export default function ShoppingList() {
                         className="text-sm"
                       />
                       <div className="flex space-x-2">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={editQuantity}
-                          onChange={(e) => setEditQuantity(parseInt(e.target.value) || 1)}
-                          placeholder="Qty"
-                          className="text-sm flex-1"
-                        />
-                        <Input
-                          value={editPrice}
-                          onChange={(e) => setEditPrice(e.target.value)}
-                          placeholder="Unit price (e.g., $2.99)"
-                          className="text-sm flex-2"
-                        />
+                        <div className="w-20">
+                          <Label className="text-xs text-gray-600">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={editQuantity}
+                            onChange={(e) => setEditQuantity(parseInt(e.target.value) || 1)}
+                            className="text-center text-lg font-semibold"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Label className="text-xs text-gray-600">Unit Price</Label>
+                          <Input
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            placeholder="$2.99"
+                            className="text-sm"
+                          />
+                        </div>
                       </div>
                       <div className="flex space-x-2">
                         <Button
