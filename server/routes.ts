@@ -269,6 +269,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advertisement routes
+  app.get("/api/ads/:placement", async (req, res) => {
+    try {
+      const { placement } = req.params;
+      const ads = await storage.getActiveAds(placement);
+      
+      // Increment impressions for all returned ads
+      for (const ad of ads) {
+        await storage.incrementAdImpressions(ad.id);
+      }
+      
+      res.json(ads);
+    } catch (error) {
+      console.error("Error fetching ads:", error);
+      res.status(500).json({ message: "Failed to fetch ads" });
+    }
+  });
+
+  app.post("/api/ads/click", async (req, res) => {
+    try {
+      const { advertisementId, userAgent } = req.body;
+      
+      const click = await storage.trackAdClick({
+        advertisementId,
+        userAgent: userAgent || null,
+      });
+      
+      res.json(click);
+    } catch (error) {
+      console.error("Error tracking ad click:", error);
+      res.status(500).json({ message: "Failed to track click" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

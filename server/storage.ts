@@ -32,7 +32,7 @@ import {
   type UpsertUser,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for authentication)
@@ -288,18 +288,24 @@ export class DatabaseStorage implements IStorage {
       .values(click)
       .returning();
     
-    // Increment click count for the advertisement
-    await db.update(advertisements)
-      .set({ clicks: db.sql`${advertisements.clicks} + 1` })
-      .where(eq(advertisements.id, click.advertisementId));
+    // Get current ad and increment clicks
+    const [currentAd] = await db.select().from(advertisements).where(eq(advertisements.id, click.advertisementId));
+    if (currentAd) {
+      await db.update(advertisements)
+        .set({ clicks: (currentAd.clicks || 0) + 1 })
+        .where(eq(advertisements.id, click.advertisementId));
+    }
     
     return newClick;
   }
 
   async incrementAdImpressions(adId: number): Promise<void> {
-    await db.update(advertisements)
-      .set({ impressions: sql`${advertisements.impressions} + 1` })
-      .where(eq(advertisements.id, adId));
+    const [currentAd] = await db.select().from(advertisements).where(eq(advertisements.id, adId));
+    if (currentAd) {
+      await db.update(advertisements)
+        .set({ impressions: (currentAd.impressions || 0) + 1 })
+        .where(eq(advertisements.id, adId));
+    }
   }
 }
 
@@ -621,6 +627,59 @@ export class MemStorage implements IStorage {
     messagesToDelete.forEach(id => {
       this.chatMessagesMap.delete(id);
     });
+  }
+
+  // Advertisement operations (mock implementation for development)
+  async getActiveAds(placement: string): Promise<Advertisement[]> {
+    // Return mock ads for development/testing
+    return [
+      {
+        id: 1,
+        title: "Premium Shopping Assistant Pro",
+        description: "Upgrade to Pro for advanced price tracking and notifications",
+        imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400",
+        targetUrl: "https://example.com/upgrade",
+        advertiser: "ShopSmart",
+        adType: "banner",
+        placement: placement,
+        impressions: 150,
+        clicks: 12,
+        isActive: true,
+        startDate: new Date(),
+        endDate: null,
+        createdAt: new Date(),
+      },
+      {
+        id: 2,
+        title: "Eco-Friendly Product Finder",
+        description: "Discover sustainable alternatives for all your shopping needs",
+        imageUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400",
+        targetUrl: "https://example.com/eco",
+        advertiser: "GreenChoice",
+        adType: "native",
+        placement: placement,
+        impressions: 89,
+        clicks: 7,
+        isActive: true,
+        startDate: new Date(),
+        endDate: null,
+        createdAt: new Date(),
+      }
+    ];
+  }
+
+  async trackAdClick(click: InsertAdClick): Promise<AdClick> {
+    const newClick: AdClick = {
+      id: Math.floor(Math.random() * 10000),
+      ...click,
+      clickedAt: new Date(),
+    };
+    return newClick;
+  }
+
+  async incrementAdImpressions(adId: number): Promise<void> {
+    // Mock implementation - in real app this would update ad impression count
+    console.log(`Incremented impressions for ad ${adId}`);
   }
 }
 
