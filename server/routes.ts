@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { fetchProductData, findBestPrice, calculateSavings } from "./barcodeApis";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
@@ -77,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Barcode scanning endpoint
+  // Barcode scanning endpoint with authentic API integration
   app.post("/api/scan", async (req, res) => {
     try {
       const { barcode } = req.body;
@@ -86,32 +87,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Barcode is required" });
       }
 
-      const product = await storage.getProductByBarcode(barcode);
+      // First check if product exists in our database
+      let product = await storage.getProductByBarcode(barcode);
       
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        // Fetch from authentic barcode APIs
+        console.log(`Fetching product data from APIs for barcode: ${barcode}`);
+        const apiResult = await fetchProductData(barcode);
+        
+        if (apiResult.product) {
+          // Create product in our database with API data
+          const productData = {
+            barcode,
+            name: apiResult.product.name,
+            brand: apiResult.product.brand || null,
+            description: apiResult.product.description || null,
+            imageUrl: apiResult.product.imageUrl || null,
+            ecoScore: null, // Will be populated later
+            carbonFootprint: null,
+            recyclingInfo: null,
+            sustainabilityCertifications: null,
+            packagingType: null,
+            isEcoFriendly: null
+          };
+
+          const createdProduct = await storage.createProduct(productData);
+          
+          // Create retailers and prices from API data
+          for (const priceInfo of apiResult.prices) {
+            // Get or create retailer
+            let retailers = await storage.getAllRetailers();
+            let retailer = retailers.find(r => r.name === priceInfo.retailer);
+            
+            if (!retailer) {
+              retailer = await storage.createRetailer({
+                name: priceInfo.retailer,
+                logo: priceInfo.retailer.charAt(0)
+              });
+            }
+
+            // Create price entry
+            await storage.createPrice({
+              productId: createdProduct.id,
+              retailerId: retailer.id,
+              price: priceInfo.price,
+              stock: priceInfo.availability,
+              url: priceInfo.url || null
+            });
+          }
+
+          // Fetch the complete product with prices
+          product = await storage.getProductByBarcode(barcode);
+        }
+        
+        if (!product) {
+          return res.status(404).json({ 
+            message: "Product not found in any database",
+            sources: apiResult.sources || [],
+            suggestion: "This product may not be in our supported databases. Try scanning a different product or check if the barcode is clear and readable.",
+            availableApis: [
+              "UPC Database (free tier)",
+              "Open Food Facts (food products)",
+              "Barcode Spider (requires API key)",
+              "Walmart API (requires API key)",
+              "Target API (public endpoints)"
+            ]
+          });
+        }
       }
 
       // Find best price
-      const bestPrice = product.prices.reduce((min, current) => {
-        const currentPrice = parseFloat(current.price.replace('$', ''));
-        const minPrice = parseFloat(min.price.replace('$', ''));
-        return currentPrice < minPrice ? current : min;
-      });
+      let bestPrice = "N/A";
+      if (product.prices && product.prices.length > 0) {
+        const bestPriceInfo = findBestPrice(product.prices.map(p => ({
+          retailer: p.retailer.name,
+          price: p.price,
+          currency: "USD",
+          availability: p.stock || "Available"
+        })));
+        
+        if (bestPriceInfo) {
+          bestPrice = bestPriceInfo.price;
+        }
+      }
 
       // Add to scan history
       await storage.addScanHistory({
         barcode,
         productName: product.name,
-        bestPrice: bestPrice.price
+        bestPrice: bestPrice
       });
 
       res.json({
         product,
-        bestPrice: bestPrice.price
+        bestPrice: bestPrice,
+        savings: product.prices.length > 1 ? calculateSavings(product.prices.map(p => ({
+          retailer: p.retailer.name,
+          price: p.price,
+          currency: "USD",
+          availability: p.stock || "Available"
+        }))) : 0
       });
     } catch (error) {
       console.error("Scan error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Refresh product pricing from APIs
+  app.post("/api/products/:barcode/refresh-prices", async (req, res) => {
+    try {
+      const { barcode } = req.params;
+      
+      console.log(`Refreshing pricing data for barcode: ${barcode}`);
+      const apiResult = await fetchProductData(barcode);
+      
+      if (apiResult.prices.length === 0) {
+        return res.json({
+          message: "No pricing data available from APIs",
+          sources: apiResult.sources,
+          suggestion: "API keys may be required for Walmart, Target, and other retailers"
+        });
+      }
+
+      // Get existing product
+      const product = await storage.getProductByBarcode(barcode);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      // Update prices from API data
+      let updatedPrices = 0;
+      for (const priceInfo of apiResult.prices) {
+        // Get or create retailer
+        let retailers = await storage.getAllRetailers();
+        let retailer = retailers.find(r => r.name === priceInfo.retailer);
+        
+        if (!retailer) {
+          retailer = await storage.createRetailer({
+            name: priceInfo.retailer,
+            logo: priceInfo.retailer.charAt(0)
+          });
+        }
+
+        // Create or update price entry
+        await storage.createPrice({
+          productId: product.id,
+          retailerId: retailer.id,
+          price: priceInfo.price,
+          stock: priceInfo.availability,
+          url: priceInfo.url || null
+        });
+        updatedPrices++;
+      }
+
+      res.json({
+        message: `Updated ${updatedPrices} prices from ${apiResult.sources.length} sources`,
+        sources: apiResult.sources,
+        pricesUpdated: updatedPrices
+      });
+    } catch (error) {
+      console.error("Refresh prices error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
