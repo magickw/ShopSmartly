@@ -127,6 +127,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear scan history
+  app.delete("/api/history", async (req, res) => {
+    try {
+      await storage.clearScanHistory();
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Clear scan history error:", error);
+      res.status(500).json({ message: "Failed to clear scan history" });
+    }
+  });
+
   // Favorites endpoints
   app.get("/api/favorites", async (req, res) => {
     try {

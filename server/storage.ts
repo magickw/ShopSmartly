@@ -48,6 +48,7 @@ export interface IStorage {
   // Scan History
   addScanHistory(scan: InsertScanHistory): Promise<ScanHistory>;
   getScanHistory(): Promise<ScanHistory[]>;
+  clearScanHistory(): Promise<void>;
   
   // Favorites
   addFavorite(favorite: InsertFavorite): Promise<Favorite>;
@@ -163,6 +164,10 @@ export class DatabaseStorage implements IStorage {
       .from(scanHistory)
       .orderBy(scanHistory.scannedAt)
       .limit(50);
+  }
+
+  async clearScanHistory(): Promise<void> {
+    await db.delete(scanHistory);
   }
 
   async addFavorite(favorite: InsertFavorite): Promise<Favorite> {
@@ -428,6 +433,10 @@ export class MemStorage implements IStorage {
   async getScanHistory(): Promise<ScanHistory[]> {
     return Array.from(this.scanHistoryItems.values())
       .sort((a, b) => new Date(b.scannedAt!).getTime() - new Date(a.scannedAt!).getTime());
+  }
+
+  async clearScanHistory(): Promise<void> {
+    this.scanHistoryItems.clear();
   }
 
   async addFavorite(favorite: InsertFavorite): Promise<Favorite> {
