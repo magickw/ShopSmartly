@@ -8,6 +8,10 @@ import {
   chatMessages,
   advertisements,
   adClicks,
+  affiliateClicks,
+  subscriptionPayments,
+  revenueMetrics,
+  featureUsage,
   users,
   type Product,
   type InsertProduct,
@@ -27,17 +31,28 @@ import {
   type InsertAdvertisement,
   type AdClick,
   type InsertAdClick,
+  type AffiliateClick,
+  type InsertAffiliateClick,
+  type SubscriptionPayment,
+  type InsertSubscriptionPayment,
+  type RevenueMetric,
+  type InsertRevenueMetric,
+  type FeatureUsage,
+  type InsertFeatureUsage,
   type ProductWithPrices,
   type User,
   type UpsertUser,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, gte, lte, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for authentication)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserSubscription(userId: string, updates: { subscriptionTier?: string; subscriptionExpiresAt?: Date | null }): Promise<void>;
+  resetDailyScanCount(userId: string): Promise<void>;
+  incrementDailyScanCount(userId: string): Promise<void>;
   
   // Products
   getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined>;
@@ -47,6 +62,23 @@ export interface IStorage {
   // Retailers
   getAllRetailers(): Promise<Retailer[]>;
   createRetailer(retailer: InsertRetailer): Promise<Retailer>;
+  getRetailerById(id: number): Promise<Retailer | undefined>;
+  
+  // Affiliate tracking
+  trackAffiliateClick(click: InsertAffiliateClick): Promise<AffiliateClick>;
+  getAffiliateClick(id: number): Promise<AffiliateClick | undefined>;
+  updateAffiliateClick(id: number, updates: Partial<AffiliateClick>): Promise<void>;
+  getAffiliateClicksRange(startDate: Date, endDate: Date): Promise<AffiliateClick[]>;
+  
+  // Revenue metrics
+  getRevenueMetricsByDate(date: string): Promise<RevenueMetric | undefined>;
+  createRevenueMetric(metric: InsertRevenueMetric): Promise<RevenueMetric>;
+  updateRevenueMetrics(id: number, updates: Partial<RevenueMetric>): Promise<void>;
+  getRevenueMetricsRange(startDate: Date, endDate: Date): Promise<RevenueMetric[]>;
+  getActiveSubscribersCount(): Promise<number>;
+  
+  // Feature usage
+  trackFeatureUsage(usage: InsertFeatureUsage): Promise<FeatureUsage>;
   
   // Prices
   createPrice(price: InsertPrice): Promise<Price>;
@@ -668,6 +700,108 @@ export class MemStorage implements IStorage {
   async incrementAdImpressions(adId: number): Promise<void> {
     // Mock implementation - in real app this would update ad impression count
     console.log(`Incremented impressions for ad ${adId}`);
+  }
+
+  // User subscription methods
+  async updateUserSubscription(userId: string, updates: { subscriptionTier?: string; subscriptionExpiresAt?: Date | null }): Promise<void> {
+    await db.update(users)
+      .set({
+        subscriptionTier: updates.subscriptionTier,
+        subscriptionExpiresAt: updates.subscriptionExpiresAt,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async resetDailyScanCount(userId: string): Promise<void> {
+    await db.update(users)
+      .set({
+        dailyScansCount: 0,
+        lastScanResetDate: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async incrementDailyScanCount(userId: string): Promise<void> {
+    await db.update(users)
+      .set({
+        dailyScansCount: sql`${users.dailyScansCount} + 1`
+      })
+      .where(eq(users.id, userId));
+  }
+
+  // Retailer methods
+  async getRetailerById(id: number): Promise<Retailer | undefined> {
+    const [retailer] = await db.select().from(retailers).where(eq(retailers.id, id));
+    return retailer;
+  }
+
+  // Affiliate tracking methods
+  async trackAffiliateClick(click: InsertAffiliateClick): Promise<AffiliateClick> {
+    const [affiliateClick] = await db.insert(affiliateClicks)
+      .values(click)
+      .returning();
+    return affiliateClick;
+  }
+
+  async getAffiliateClick(id: number): Promise<AffiliateClick | undefined> {
+    const [click] = await db.select().from(affiliateClicks).where(eq(affiliateClicks.id, id));
+    return click;
+  }
+
+  async updateAffiliateClick(id: number, updates: Partial<AffiliateClick>): Promise<void> {
+    await db.update(affiliateClicks)
+      .set(updates)
+      .where(eq(affiliateClicks.id, id));
+  }
+
+  async getAffiliateClicksRange(startDate: Date, endDate: Date): Promise<AffiliateClick[]> {
+    return await db.select()
+      .from(affiliateClicks)
+      .where(sql`${affiliateClicks.clickedAt} >= ${startDate} AND ${affiliateClicks.clickedAt} <= ${endDate}`);
+  }
+
+  // Revenue metrics methods
+  async getRevenueMetricsByDate(date: string): Promise<RevenueMetric | undefined> {
+    const [metric] = await db.select()
+      .from(revenueMetrics)
+      .where(sql`DATE(${revenueMetrics.date}) = ${date}`);
+    return metric;
+  }
+
+  async createRevenueMetric(metric: InsertRevenueMetric): Promise<RevenueMetric> {
+    const [revenueMetric] = await db.insert(revenueMetrics)
+      .values(metric)
+      .returning();
+    return revenueMetric;
+  }
+
+  async updateRevenueMetrics(id: number, updates: Partial<RevenueMetric>): Promise<void> {
+    await db.update(revenueMetrics)
+      .set(updates)
+      .where(eq(revenueMetrics.id, id));
+  }
+
+  async getRevenueMetricsRange(startDate: Date, endDate: Date): Promise<RevenueMetric[]> {
+    return await db.select()
+      .from(revenueMetrics)
+      .where(sql`${revenueMetrics.date} >= ${startDate} AND ${revenueMetrics.date} <= ${endDate}`)
+      .orderBy(revenueMetrics.date);
+  }
+
+  async getActiveSubscribersCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(sql`${users.subscriptionTier} != 'free' AND (${users.subscriptionExpiresAt} IS NULL OR ${users.subscriptionExpiresAt} > NOW())`);
+    return result[0]?.count || 0;
+  }
+
+  // Feature usage tracking
+  async trackFeatureUsage(usage: InsertFeatureUsage): Promise<FeatureUsage> {
+    const [featureUsageRecord] = await db.insert(featureUsage)
+      .values(usage)
+      .returning();
+    return featureUsageRecord;
   }
 }
 

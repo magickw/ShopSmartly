@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fetchProductData, findBestPrice, calculateSavings } from "./barcodeApis";
 import { getAllMerchantPrices, findLowestPrice, calculatePriceSavings } from "./pricingApis";
+import { monetizationService } from "./monetization";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
