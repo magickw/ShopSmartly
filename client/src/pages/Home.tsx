@@ -4,16 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Scan, Heart, ShoppingCart, History, QrCode, LogOut } from "lucide-react";
 import { Link } from "wouter";
-import { queryClient } from "@/lib/queryClient";
-import type { User } from "@shared/schema";
 
 export default function Home() {
-  const { user } = useAuth() as { user: User | null };
+  const { user } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    window.location.reload();
+    window.location.href = "/api/logout";
   };
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {

@@ -2,62 +2,22 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
-import { verifyGoogleToken, verifyAppleToken, generateJWT, authenticateToken, getCurrentUser } from "./auth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Auth routes for custom authentication
-  app.post('/api/auth/google', async (req, res) => {
-    try {
-      const { idToken } = req.body;
-      
-      if (!process.env.GOOGLE_CLIENT_ID) {
-        return res.status(500).json({ 
-          message: "Google authentication not configured. Please provide GOOGLE_CLIENT_ID." 
-        });
-      }
-      
-      const userData = await verifyGoogleToken(idToken);
-      const user = await storage.upsertUser(userData);
-      const token = generateJWT(user.id);
-      
-      res.json({ user, token });
-    } catch (error) {
-      console.error("Google auth error:", error);
-      res.status(500).json({ message: "Authentication failed" });
-    }
-  });
+  // Auth middleware
+  await setupAuth(app);
 
-  app.post('/api/auth/apple', async (req, res) => {
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const { idToken } = req.body;
-      
-      const userData = await verifyAppleToken(idToken);
-      const user = await storage.upsertUser(userData);
-      const token = generateJWT(user.id);
-      
-      res.json({ user, token });
-    } catch (error) {
-      console.error("Apple auth error:", error);
-      res.status(500).json({ message: "Authentication failed" });
-    }
-  });
-
-  app.get('/api/auth/user', authenticateToken, async (req, res) => {
-    try {
-      const user = await getCurrentUser(req);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
-  });
-
-  app.post('/api/auth/logout', async (req, res) => {
-    res.json({ message: "Logged out successfully" });
   });
   
   // Product creation endpoint

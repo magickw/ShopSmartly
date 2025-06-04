@@ -1,25 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Scan, Heart, ShoppingCart, History, QrCode } from "lucide-react";
-import GoogleAuth from "@/components/GoogleAuth";
-import AppleAuth from "@/components/AppleAuth";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
 
 export default function Landing() {
-  const { toast } = useToast();
-
-  const handleAuthSuccess = (token: string, user: any) => {
-    toast({
-      title: "Welcome!",
-      description: `Successfully signed in as ${user.firstName || user.email}`,
-    });
-    
-    // Invalidate auth queries to trigger re-fetch
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    
-    // Refresh the page to trigger the authentication state change
-    window.location.reload();
+  const handleLogin = () => {
+    window.location.href = "/api/login";
   };
 
   return (
@@ -33,10 +18,13 @@ export default function Landing() {
             Scan barcodes, compare prices across retailers, and manage your shopping with ease. 
             Get the best deals from Target, Walmart, and Amazon in one place.
           </p>
-          <div className="space-y-4 max-w-md mx-auto">
-            <GoogleAuth onSuccess={handleAuthSuccess} />
-            <AppleAuth onSuccess={handleAuthSuccess} />
-          </div>
+          <Button 
+            onClick={handleLogin}
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+          >
+            Sign In to Get Started
+          </Button>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -113,10 +101,13 @@ export default function Landing() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 max-w-md mx-auto">
-                <GoogleAuth onSuccess={handleAuthSuccess} />
-                <AppleAuth onSuccess={handleAuthSuccess} />
-              </div>
+              <Button 
+                onClick={handleLogin}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-3"
+              >
+                Sign In Now
+              </Button>
             </CardContent>
           </Card>
         </div>

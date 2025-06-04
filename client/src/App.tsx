@@ -19,9 +19,7 @@ import StatusBar from "@/components/StatusBar";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/landing" component={Landing} />
-      <Route path="/scanner" component={Scanner} />
+      <Route path="/" component={Scanner} />
       <Route path="/product/:barcode" component={ProductDetail} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/shopping-list" component={ShoppingList} />
@@ -32,33 +30,17 @@ function Router() {
   );
 }
 
-function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="w-full bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <Landing />
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-sm mx-auto bg-white min-h-screen relative">
-      <StatusBar />
-      <div className="pb-20">
-        <Router />
-      </div>
-      <BottomNavigation />
-    </div>
-  );
-}
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppContent />
+        <div className="max-w-sm mx-auto bg-white min-h-screen relative">
+          <StatusBar />
+          <div className="pb-20">
+            <Router />
+          </div>
+          <BottomNavigation />
+        </div>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
