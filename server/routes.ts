@@ -134,6 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Fetch the updated product with all prices
         product = await storage.getProductByBarcode(barcode);
+        console.log(`Product after price update:`, JSON.stringify(product, null, 2));
       }
         
       if (!product) {
