@@ -1,0 +1,32 @@
+{
+  "name": "PriceScan - Barcode Scanner & Price Comparison",
+  "short_name": "PriceScan",
+  "description": "Scan product barcodes, compare prices across retailers, and generate QR codes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007AFF",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMwMDdBRkYiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMyAzaDJWMWE4IDggMCAwIDEgOCA4VjdoLTJhNiA2IDAgMCAwLTYgNnYySDN6IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMjEgM2gtMlYxYTggOCAwIDAgMC04IDhWN2gyYTYgNiAwIDAgMSA2IDZ2Mmgyem0wIDE4di0yaDJhOCA4IDAgMCAwIDgtOHYyaC0yYTYgNiAwIDAgMS02IDZ2MmgtMnoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0zIDIxdjJoMmE4IDggMCAwIDAgOC04di0yaC0yYTYgNiAwIDAgMS02LTZ2LTJIM3oiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xMiA4djhNOCAxMmg4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiMwMDdBRkYiLz4KPHN2ZyB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgM2gyVjFhOCA4IDAgMCAxIDggOFY3aC0yYTYgNiAwIDAgMC02IDZ2Mkg2eiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTIxIDNoLTJWMWE4IDggMCAwIDAtOCA4Vjdoem0wIDE4di0yaDJhOCA4IDAgMCAwIDgtOHYyaC0yYTYgNiAwIDAgMS02IDZ2Mmg0eiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTMgMjF2MmgyYe0gOCAwIDAgMCA4LTh2LTJoLTJhNiA2IDAgMCAxLTYtNnYtMkg2eiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEyIDh2OE04IDEyaDgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo8L3N2Zz4=",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["shopping", "utilities", "productivity"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzc1IiBoZWlnaHQ9IjgxMiIgdmlld0JveD0iMCAwIDM3NSA4MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzNzUiIGhlaWdodD0iODEyIiBmaWxsPSIjZmZmZmZmIi8+CjxyZWN0IHg9IjI0IiB5PSI2NCIgd2lkdGg9IjMyNyIgaGVpZ2h0PSIzMjAiIHJ4PSIxMiIgZmlsbD0iIzAwMDAwMCIvPgo8cmVjdCB4PSI4MCIgeT0iMTQ0IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjEyOCIgcng9IjgiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxyZWN0IHg9IjI0IiB5PSI0MTYiIHdpZHRoPSIzMjciIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iIzAwN0FGRiIvPgo8cmVjdCB4PSIyNCIgeT0iNDk2IiB3aWR0aD0iMzI3IiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiNGRjk1MDAiLz4KPC9zdmc+",
+      "sizes": "375x812",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}
