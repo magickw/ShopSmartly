@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fetchProductData, findBestPrice, calculateSavings } from "./barcodeApis";
+import { getAllMerchantPrices, findLowestPrice, calculatePriceSavings } from "./pricingApis";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
@@ -91,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let product = await storage.getProductByBarcode(barcode);
       
       if (!product) {
-        // Fetch from authentic barcode APIs
+        // Fetch product data from UPC database
         console.log(`Fetching product data from APIs for barcode: ${barcode}`);
         const apiResult = await fetchProductData(barcode);
         
@@ -103,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             brand: apiResult.product.brand || null,
             description: apiResult.product.description || null,
             imageUrl: apiResult.product.imageUrl || null,
-            ecoScore: null, // Will be populated later
+            ecoScore: null,
             carbonFootprint: null,
             recyclingInfo: null,
             sustainabilityCertifications: null,
@@ -113,16 +114,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const createdProduct = await storage.createProduct(productData);
           
-          // Create retailers and prices from API data
-          for (const priceInfo of apiResult.prices) {
+          // Fetch pricing data from merchant APIs
+          console.log(`Fetching pricing data from merchant APIs for: ${apiResult.product.name}`);
+          const pricingResult = await getAllMerchantPrices(barcode, apiResult.product.name);
+          
+          // Create retailers and prices from pricing APIs
+          for (const merchantPrice of pricingResult.prices) {
             // Get or create retailer
             let retailers = await storage.getAllRetailers();
-            let retailer = retailers.find(r => r.name === priceInfo.retailer);
+            let retailer = retailers.find(r => r.name === merchantPrice.merchant);
             
             if (!retailer) {
               retailer = await storage.createRetailer({
-                name: priceInfo.retailer,
-                logo: priceInfo.retailer.charAt(0)
+                name: merchantPrice.merchant,
+                logo: merchantPrice.merchant.charAt(0)
               });
             }
 
@@ -130,9 +135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createPrice({
               productId: createdProduct.id,
               retailerId: retailer.id,
-              price: priceInfo.price,
-              stock: priceInfo.availability,
-              url: priceInfo.url || null
+              price: `$${merchantPrice.price.toFixed(2)}`,
+              stock: merchantPrice.availability === 'in_stock' ? 'In Stock' : 
+                     merchantPrice.availability === 'out_of_stock' ? 'Out of Stock' : 'Check Availability',
+              url: merchantPrice.url || null
             });
           }
 
@@ -194,39 +200,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Refresh product pricing from APIs
+  // Refresh product pricing from merchant APIs
   app.post("/api/products/:barcode/refresh-prices", async (req, res) => {
     try {
       const { barcode } = req.params;
       
-      console.log(`Refreshing pricing data for barcode: ${barcode}`);
-      const apiResult = await fetchProductData(barcode);
-      
-      if (apiResult.prices.length === 0) {
-        return res.json({
-          message: "No pricing data available from APIs",
-          sources: apiResult.sources,
-          suggestion: "API keys may be required for Walmart, Target, and other retailers"
-        });
-      }
-
       // Get existing product
       const product = await storage.getProductByBarcode(barcode);
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
 
-      // Update prices from API data
+      console.log(`Refreshing merchant pricing data for: ${product.name}`);
+      const pricingResult = await getAllMerchantPrices(barcode, product.name);
+      
+      if (pricingResult.prices.length === 0) {
+        return res.json({
+          message: "No merchant pricing data available",
+          sources: pricingResult.sources,
+          suggestion: "API keys required for Shopping.com, Google Shopping, Keepa, and PriceAPI",
+          availableApis: [
+            "Shopping.com (requires SHOPPING_API_KEY)",
+            "Google Shopping (requires GOOGLE_API_KEY and GOOGLE_SHOPPING_CX)",
+            "Keepa Amazon tracking (requires KEEPA_API_KEY)",
+            "PriceAPI (requires PRICEAPI_KEY)",
+            "FakeSpot analysis (requires FAKESPOT_API_KEY)"
+          ]
+        });
+      }
+
+      // Update prices from merchant APIs
       let updatedPrices = 0;
-      for (const priceInfo of apiResult.prices) {
+      for (const merchantPrice of pricingResult.prices) {
         // Get or create retailer
         let retailers = await storage.getAllRetailers();
-        let retailer = retailers.find(r => r.name === priceInfo.retailer);
+        let retailer = retailers.find(r => r.name === merchantPrice.merchant);
         
         if (!retailer) {
           retailer = await storage.createRetailer({
-            name: priceInfo.retailer,
-            logo: priceInfo.retailer.charAt(0)
+            name: merchantPrice.merchant,
+            logo: merchantPrice.merchant.charAt(0)
           });
         }
 
@@ -234,17 +247,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createPrice({
           productId: product.id,
           retailerId: retailer.id,
-          price: priceInfo.price,
-          stock: priceInfo.availability,
-          url: priceInfo.url || null
+          price: `$${merchantPrice.price.toFixed(2)}`,
+          stock: merchantPrice.availability === 'in_stock' ? 'In Stock' : 
+                 merchantPrice.availability === 'out_of_stock' ? 'Out of Stock' : 'Check Availability',
+          url: merchantPrice.url || null
         });
         updatedPrices++;
       }
 
       res.json({
-        message: `Updated ${updatedPrices} prices from ${apiResult.sources.length} sources`,
-        sources: apiResult.sources,
-        pricesUpdated: updatedPrices
+        message: `Updated ${updatedPrices} merchant prices from ${pricingResult.sources.length} sources`,
+        sources: pricingResult.sources,
+        pricesUpdated: updatedPrices,
+        lowestPrice: findLowestPrice(pricingResult.prices),
+        savings: calculatePriceSavings(pricingResult.prices)
       });
     } catch (error) {
       console.error("Refresh prices error:", error);

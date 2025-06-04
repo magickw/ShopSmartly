@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import EcoFriendlyComparison from "@/components/EcoFriendlyComparison";
+import MerchantPriceComparison from "@/components/MerchantPriceComparison";
 import type { ScanResult } from "@shared/schema";
 
 export default function ProductDetail() {
@@ -128,30 +129,8 @@ export default function ProductDetail() {
           )}
         </div>
 
-        {/* Price Comparison */}
-        <Card className="bg-ios-light-gray border-0 mb-6">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">Price Comparison</h3>
-            <div className="space-y-3">
-              {product.prices.map((priceInfo) => (
-                <div key={priceInfo.id} className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-white text-xs font-bold">
-                        {priceInfo.retailer.logo || priceInfo.retailer.name.charAt(0)}
-                      </span>
-                    </div>
-                    <span>{priceInfo.retailer.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-ios-green">{priceInfo.price}</p>
-                    <p className="text-xs text-ios-gray">{priceInfo.stock}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Merchant Price Comparison */}
+        <MerchantPriceComparison product={product} className="mb-6" />
 
         {/* Eco-Friendly Comparison */}
         <EcoFriendlyComparison product={product} className="mb-6" />
