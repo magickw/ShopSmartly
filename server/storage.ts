@@ -65,6 +65,11 @@ export interface IStorage {
   addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatHistory(userId: string): Promise<ChatMessage[]>;
   clearChatHistory(userId: string): Promise<void>;
+  
+  // Advertisements
+  getActiveAds(placement: string): Promise<Advertisement[]>;
+  trackAdClick(click: InsertAdClick): Promise<AdClick>;
+  incrementAdImpressions(adId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

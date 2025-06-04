@@ -99,6 +99,32 @@ export const priceAlerts = pgTable("price_alerts", {
   lastChecked: timestamp("last_checked"),
 });
 
+export const advertisements = pgTable("advertisements", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  targetUrl: text("target_url"),
+  advertiser: text("advertiser").notNull(),
+  adType: text("ad_type").notNull(), // 'banner', 'sponsored_product', 'native'
+  placement: text("placement").notNull(), // 'home', 'search_results', 'product_detail'
+  isActive: boolean("is_active").default(true),
+  impressions: integer("impressions").default(0),
+  clicks: integer("clicks").default(0),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const adClicks = pgTable("ad_clicks", {
+  id: serial("id").primaryKey(),
+  advertisementId: integer("advertisement_id").notNull().references(() => advertisements.id),
+  userId: varchar("user_id").references(() => users.id),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+});
+
 // Relations
 export const productsRelations = relations(products, ({ many }) => ({
   prices: many(prices),
@@ -146,6 +172,21 @@ export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
   }),
 }));
 
+export const advertisementsRelations = relations(advertisements, ({ many }) => ({
+  clicks: many(adClicks),
+}));
+
+export const adClicksRelations = relations(adClicks, ({ one }) => ({
+  advertisement: one(advertisements, {
+    fields: [adClicks.advertisementId],
+    references: [advertisements.id],
+  }),
+  user: one(users, {
+    fields: [adClicks.userId],
+    references: [users.id],
+  }),
+}));
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
@@ -182,6 +223,18 @@ export const insertPriceAlertSchema = createInsertSchema(priceAlerts).omit({
   id: true,
   createdAt: true,
   lastChecked: true,
+});
+
+export const insertAdvertisementSchema = createInsertSchema(advertisements).omit({
+  id: true,
+  impressions: true,
+  clicks: true,
+  createdAt: true,
+});
+
+export const insertAdClickSchema = createInsertSchema(adClicks).omit({
+  id: true,
+  clickedAt: true,
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
