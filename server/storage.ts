@@ -63,6 +63,7 @@ export interface IStorage {
   // Chat Messages
   addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatHistory(userId: string): Promise<ChatMessage[]>;
+  clearChatHistory(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -249,6 +250,12 @@ export class DatabaseStorage implements IStorage {
       .from(chatMessages)
       .where(eq(chatMessages.userId, userId))
       .orderBy(chatMessages.timestamp);
+  }
+
+  async clearChatHistory(userId: string): Promise<void> {
+    await db
+      .delete(chatMessages)
+      .where(eq(chatMessages.userId, userId));
   }
 }
 
@@ -535,6 +542,16 @@ export class MemStorage implements IStorage {
     return Array.from(this.chatMessagesMap.values())
       .filter(message => message.userId === userId)
       .sort((a, b) => a.timestamp!.getTime() - b.timestamp!.getTime());
+  }
+
+  async clearChatHistory(userId: string): Promise<void> {
+    const messagesToDelete = Array.from(this.chatMessagesMap.entries())
+      .filter(([_, message]) => message.userId === userId)
+      .map(([id, _]) => id);
+    
+    messagesToDelete.forEach(id => {
+      this.chatMessagesMap.delete(id);
+    });
   }
 }
 

@@ -247,6 +247,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/chat/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      await storage.clearChatHistory(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+      res.status(500).json({ message: "Failed to clear chat history" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
