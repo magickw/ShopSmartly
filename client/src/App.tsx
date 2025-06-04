@@ -15,6 +15,7 @@ import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import BottomNavigation from "@/components/BottomNavigation";
 import StatusBar from "@/components/StatusBar";
+import ChatAssistant from "@/components/ChatAssistant";
 
 function Router() {
   return (

@@ -2,6 +2,50 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
+
+async function generateShoppingAssistantResponse(message: string): Promise<string> {
+  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+  
+  if (!PERPLEXITY_API_KEY) {
+    return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. However, I need the Perplexity API key to provide real-time shopping advice. Please ask your administrator to configure it.";
+  }
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-sonar-small-128k-online',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful shopping assistant. Provide concise, practical advice about products, prices, and shopping. Keep responses under 150 words.'
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "I'm here to help with your shopping needs!";
+  } catch (error) {
+    console.error('Perplexity API error:', error);
+    return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. How can I assist you today?";
+  }
+}
 export async function registerRoutes(app: Express): Promise<Server> {
   // Temporary auth endpoint that returns null (no authentication for now)
   app.get('/api/auth/user', async (req, res) => {
@@ -158,6 +202,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Remove shopping list item error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Chat API routes
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message, userId = "anonymous" } = req.body;
+      
+      // Save user message
+      await storage.addChatMessage({
+        userId,
+        message,
+        isUser: true,
+        response: null,
+      });
+
+      // Generate AI response using Perplexity API
+      const response = await generateShoppingAssistantResponse(message);
+      
+      // Save assistant response
+      await storage.addChatMessage({
+        userId,
+        message: response,
+        isUser: false,
+        response: null,
+      });
+
+      res.json({ response });
+    } catch (error) {
+      console.error("Error processing chat message:", error);
+      res.status(500).json({ message: "Failed to process chat message" });
+    }
+  });
+
+  app.get("/api/chat/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const history = await storage.getChatHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+      res.status(500).json({ message: "Failed to fetch chat history" });
     }
   });
 
