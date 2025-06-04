@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 import type { ScanHistory } from "@shared/schema";
 
 export default function History() {
@@ -70,25 +72,30 @@ export default function History() {
                 </h3>
                 <div className="space-y-3">
                   {scans.map((scan) => (
-                    <Card key={scan.id} className="bg-white border border-gray-100">
-                      <CardContent className="p-4 flex items-center">
-                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
-                          <span className="text-xs font-medium text-gray-500">IMG</span>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium">{scan.productName}</h4>
-                          <p className="text-sm text-ios-gray">
-                            {formatTime(new Date(scan.scannedAt!))}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-ios-green">
-                            {scan.bestPrice}
-                          </p>
-                          <p className="text-xs text-ios-gray">Best Price</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <Link key={scan.id} href={`/product/${scan.barcode}`}>
+                      <Card className="bg-white border border-gray-100 hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4 flex items-center">
+                          <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
+                            <span className="text-xs font-medium text-gray-500">IMG</span>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{scan.productName}</h4>
+                            <p className="text-sm text-ios-gray">
+                              {formatTime(new Date(scan.scannedAt!))}
+                            </p>
+                          </div>
+                          <div className="text-right flex items-center">
+                            <div className="mr-2">
+                              <p className="text-sm font-medium text-ios-green">
+                                {scan.bestPrice}
+                              </p>
+                              <p className="text-xs text-ios-gray">Best Price</p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </div>

@@ -1,7 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Favorite, ProductWithPrices } from "@shared/schema";
@@ -67,37 +68,46 @@ export default function Favorites() {
         ) : (
           <div className="space-y-3">
             {favorites.map((favorite) => (
-              <Card key={favorite.id} className="bg-white border border-gray-100">
-                <CardContent className="p-4 flex items-center">
-                  <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center mr-4">
-                    {favorite.product.imageUrl ? (
-                      <img 
-                        src={favorite.product.imageUrl}
-                        alt={favorite.product.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <span className="text-xs font-medium text-gray-500">IMG</span>
-                    )}
+              <Card key={favorite.id} className="bg-white border border-gray-100 hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <Link href={`/product/${favorite.product.barcode}`} className="flex items-center flex-1 cursor-pointer">
+                      <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center mr-4">
+                        {favorite.product.imageUrl ? (
+                          <img 
+                            src={favorite.product.imageUrl}
+                            alt={favorite.product.name}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <span className="text-xs font-medium text-gray-500">IMG</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{favorite.product.name}</h3>
+                        <p className="text-sm text-ios-gray">
+                          Best Price: {getBestPrice(favorite.product)}
+                        </p>
+                        <p className="text-xs text-ios-gray">
+                          Added {new Date(favorite.addedAt!).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 mr-2" />
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeFavoriteMutation.mutate(favorite.product.id);
+                      }}
+                      disabled={removeFavoriteMutation.isPending}
+                      className="text-ios-red p-2 ml-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{favorite.product.name}</h3>
-                    <p className="text-sm text-ios-gray">
-                      Best Price: {getBestPrice(favorite.product)}
-                    </p>
-                    <p className="text-xs text-ios-gray">
-                      Added {new Date(favorite.addedAt!).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFavoriteMutation.mutate(favorite.product.id)}
-                    disabled={removeFavoriteMutation.isPending}
-                    className="text-ios-red p-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </CardContent>
               </Card>
             ))}
