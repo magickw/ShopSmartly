@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -380,19 +383,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subscription status with real scan count tracking
+  // Subscription status - app is now completely free
   app.get("/api/subscription/status", async (req: any, res) => {
     try {
-      const scansRemaining = Math.max(0, DAILY_SCAN_LIMIT - dailyScanCount);
-      const canScan = scansRemaining > 0;
-      
       res.json({
         tier: "free",
         expiresAt: null,
         scanLimits: {
-          canScan,
-          scansRemaining,
-          resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          canScan: true,
+          scansRemaining: 999999,
+          resetTime: null
         }
       });
     } catch (error) {
