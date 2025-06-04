@@ -89,6 +89,16 @@ export const chatMessages = pgTable("chat_messages", {
   isUser: boolean("is_user").notNull(),
 });
 
+export const priceAlerts = pgTable("price_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  targetPrice: text("target_price").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastChecked: timestamp("last_checked"),
+});
+
 // Relations
 export const productsRelations = relations(products, ({ many }) => ({
   prices: many(prices),
@@ -125,6 +135,17 @@ export const shoppingListItemsRelations = relations(shoppingListItems, ({ one })
   }),
 }));
 
+export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
+  product: one(products, {
+    fields: [priceAlerts.productId],
+    references: [products.id],
+  }),
+  user: one(users, {
+    fields: [priceAlerts.userId],
+    references: [users.id],
+  }),
+}));
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
@@ -155,6 +176,12 @@ export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   id: true,
   timestamp: true,
+});
+
+export const insertPriceAlertSchema = createInsertSchema(priceAlerts).omit({
+  id: true,
+  createdAt: true,
+  lastChecked: true,
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({

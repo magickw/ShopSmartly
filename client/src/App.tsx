@@ -12,6 +12,7 @@ import ShoppingList from "@/pages/ShoppingList";
 import History from "@/pages/History";
 import QRGenerator from "@/pages/QRGenerator";
 import EcoComparison from "@/pages/EcoComparison";
+import Analytics from "@/pages/Analytics";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/history" component={History} />
       <Route path="/qr-generator" component={QRGenerator} />
       <Route path="/eco-comparison" component={EcoComparison} />
+      <Route path="/analytics" component={Analytics} />
       <Route component={NotFound} />
     </Switch>
   );

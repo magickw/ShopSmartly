@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf } from "lucide-react";
+import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Home() {
