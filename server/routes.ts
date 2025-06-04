@@ -103,12 +103,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Add to scan history when accessing existing product
-      await storage.addScanHistory({
-        barcode,
-        productName: product.name
-      });
-
       res.json({
         product,
         bestPrice
@@ -128,14 +122,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Barcode is required" });
       }
 
-      // Always fetch fresh data from UPC Item DB
-      console.log(`Fetching product data from APIs for barcode: ${barcode}`);
-      const apiResult = await fetchProductData(barcode);
-      
       // Check if product exists in our database
       let product = await storage.getProductByBarcode(barcode);
       
-      if (!product && apiResult.product) {
+      if (!product) {
+        // Always fetch fresh data from UPC Item DB
+        console.log(`Fetching product data from APIs for barcode: ${barcode}`);
+        const apiResult = await fetchProductData(barcode);
+        
+        if (!apiResult.product) {
+          return res.status(404).json({ 
+            message: "Product not found in any database",
+            suggestion: "This product may not be in our supported databases. Try scanning a different product or check if the barcode is clear and readable."
+          });
+        }
+        
         // Create new product
         const productData = {
           barcode,
@@ -153,41 +154,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const createdProduct = await storage.createProduct(productData);
         product = { ...createdProduct, prices: [] };
-      }
+        
+          // Update pricing data from UPC Item DB
+          console.log(`Found ${apiResult.prices.length} merchant offers from UPC Item DB`);
+          for (const priceInfo of apiResult.prices) {
+            console.log(`Creating price entry for ${priceInfo.retailer}: ${priceInfo.price}`);
+            
+            // Get or create retailer
+            let retailers = await storage.getAllRetailers();
+            let retailer = retailers.find(r => r.name === priceInfo.retailer);
+            
+            if (!retailer) {
+              retailer = await storage.createRetailer({
+                name: priceInfo.retailer,
+                logo: priceInfo.retailer.charAt(0),
+                affiliateProgram: null,
+                affiliateCommissionRate: null,
+                affiliateBaseUrl: null
+              });
+              console.log(`Created new retailer: ${retailer.name}`);
+            }
 
-      // Update pricing data from UPC Item DB
-      if (product && apiResult.prices && apiResult.prices.length > 0) {
-        console.log(`Found ${apiResult.prices.length} merchant offers from UPC Item DB`);
-        for (const priceInfo of apiResult.prices) {
-          console.log(`Creating price entry for ${priceInfo.retailer}: ${priceInfo.price}`);
-          
-          // Get or create retailer
-          let retailers = await storage.getAllRetailers();
-          let retailer = retailers.find(r => r.name === priceInfo.retailer);
-          
-          if (!retailer) {
-            retailer = await storage.createRetailer({
-              name: priceInfo.retailer,
-              logo: priceInfo.retailer.charAt(0)
+            // Create price entry
+            await storage.createPrice({
+              productId: product.id,
+              retailerId: retailer.id,
+              price: priceInfo.price,
+              stock: priceInfo.availability,
+              url: priceInfo.url || null
             });
-            console.log(`Created new retailer: ${retailer.name}`);
           }
 
-          // Create price entry
-          await storage.createPrice({
-            productId: product.id,
-            retailerId: retailer.id,
-            price: priceInfo.price,
-            stock: priceInfo.availability,
-            url: priceInfo.url || null
-          });
+          // Fetch the updated product with all prices
+          product = await storage.getProductByBarcode(barcode);
+          console.log(`Product after price update:`, JSON.stringify(product, null, 2));
         }
-
-        // Fetch the updated product with all prices
-        product = await storage.getProductByBarcode(barcode);
-        console.log(`Product after price update:`, JSON.stringify(product, null, 2));
       }
-        
+      
       if (!product) {
         return res.status(404).json({ 
           message: "Product not found in any database",
@@ -209,12 +212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bestPrice = bestPriceInfo.price;
         }
       }
-
-      // Add to scan history
-      await storage.addScanHistory({
-        barcode,
-        productName: product.name
-      });
 
       res.json({
         product,
