@@ -104,22 +104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Barcode scanning endpoint (counts toward daily limits and adds to history)
+  // Barcode scanning endpoint (adds to history)
   app.post("/api/scan", async (req, res) => {
     try {
       const { barcode } = req.body;
       
       if (!barcode) {
         return res.status(400).json({ message: "Barcode is required" });
-      }
-
-      // Check scan limit
-      if (dailyScanCount >= DAILY_SCAN_LIMIT) {
-        return res.status(429).json({ 
-          message: "Daily scan limit reached",
-          upgradeRequired: true,
-          scansRemaining: 0
-        });
       }
 
       let product = await storage.getProductByBarcode(barcode);

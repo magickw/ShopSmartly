@@ -40,14 +40,8 @@ export default function Scanner() {
   };
 
   const handleStartScanning = () => {
-    if (!checkScanLimit()) return;
     setShowScanner(true);
   };
-
-  const isFreeTier = subscriptionStatus?.tier === "free" || !subscriptionStatus?.tier;
-  const scansRemaining = isFreeTier ? 
-    (subscriptionStatus?.scanLimits?.dailyLimit || 10) - (subscriptionStatus?.scanLimits?.scansUsed || 0) : 
-    null;
 
   return (
     <div className="px-4">
@@ -87,29 +81,10 @@ export default function Scanner() {
       <div className="mt-6 space-y-3">
         <Button
           onClick={handleStartScanning}
-          disabled={isFreeTier && scansRemaining === 0}
-          className={`w-full py-4 rounded-xl text-lg font-medium h-auto ${
-            isFreeTier && scansRemaining === 0 
-              ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-              : 'bg-ios-blue hover:bg-ios-blue/90 text-white'
-          }`}
+          className="w-full py-4 rounded-xl text-lg font-medium h-auto bg-ios-blue hover:bg-ios-blue/90 text-white"
         >
-          {isFreeTier && scansRemaining === 0 ? (
-            <>
-              <Lock className="mr-2 h-5 w-5" />
-              Daily Limit Reached
-            </>
-          ) : (
-            <>
-              <Camera className="mr-2 h-5 w-5" />
-              Start Scanning
-              {isFreeTier && scansRemaining !== null && (
-                <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
-                  {scansRemaining} left
-                </span>
-              )}
-            </>
-          )}
+          <Camera className="mr-2 h-5 w-5" />
+          Start Scanning
         </Button>
         <Button
           onClick={() => setShowManualEntry(!showManualEntry)}
@@ -181,7 +156,7 @@ export default function Scanner() {
                       </div>
                       <div className="flex-1 pr-8">
                         <h3 className="font-medium">{scan.productName}</h3>
-                        <p className="text-sm text-gray-500">Best: {scan.bestPrice}</p>
+                        <p className="text-sm text-gray-500">Scanned: {scan.scannedAt ? new Date(scan.scannedAt).toLocaleDateString() : 'Recently'}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-gray-400" />
                     </CardContent>
