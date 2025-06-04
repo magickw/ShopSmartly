@@ -266,6 +266,12 @@ export type InsertShoppingListItem = z.infer<typeof insertShoppingListItemSchema
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
+export type Advertisement = typeof advertisements.$inferSelect;
+export type InsertAdvertisement = z.infer<typeof insertAdvertisementSchema>;
+
+export type AdClick = typeof adClicks.$inferSelect;
+export type InsertAdClick = z.infer<typeof insertAdClickSchema>;
+
 // Client-side types for API responses
 export interface ProductWithPrices extends Product {
   prices: (Price & { retailer: Retailer })[];

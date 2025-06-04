@@ -6,6 +6,8 @@ import {
   favorites,
   shoppingListItems,
   chatMessages,
+  advertisements,
+  adClicks,
   users,
   type Product,
   type InsertProduct,
@@ -21,6 +23,10 @@ import {
   type InsertShoppingListItem,
   type ChatMessage,
   type InsertChatMessage,
+  type Advertisement,
+  type InsertAdvertisement,
+  type AdClick,
+  type InsertAdClick,
   type ProductWithPrices,
   type User,
   type UpsertUser,
@@ -266,6 +272,34 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(chatMessages)
       .where(eq(chatMessages.userId, userId));
+  }
+
+  // Advertisement operations
+  async getActiveAds(placement: string): Promise<Advertisement[]> {
+    const activeAds = await db.select().from(advertisements).where(
+      eq(advertisements.placement, placement)
+    );
+    return activeAds;
+  }
+
+  async trackAdClick(click: InsertAdClick): Promise<AdClick> {
+    const [newClick] = await db
+      .insert(adClicks)
+      .values(click)
+      .returning();
+    
+    // Increment click count for the advertisement
+    await db.update(advertisements)
+      .set({ clicks: db.sql`${advertisements.clicks} + 1` })
+      .where(eq(advertisements.id, click.advertisementId));
+    
+    return newClick;
+  }
+
+  async incrementAdImpressions(adId: number): Promise<void> {
+    await db.update(advertisements)
+      .set({ impressions: sql`${advertisements.impressions} + 1` })
+      .where(eq(advertisements.id, adId));
   }
 }
 
