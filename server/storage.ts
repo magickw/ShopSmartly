@@ -5,6 +5,7 @@ import {
   scanHistory,
   favorites,
   shoppingListItems,
+  chatMessages,
   users,
   type Product,
   type InsertProduct,
@@ -18,6 +19,8 @@ import {
   type InsertFavorite,
   type ShoppingListItem,
   type InsertShoppingListItem,
+  type ChatMessage,
+  type InsertChatMessage,
   type ProductWithPrices,
   type User,
   type UpsertUser,
@@ -231,6 +234,22 @@ export class DatabaseStorage implements IStorage {
 
     return result;
   }
+
+  async addChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [chatMessage] = await db
+      .insert(chatMessages)
+      .values(message)
+      .returning();
+    return chatMessage;
+  }
+
+  async getChatHistory(userId: string): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.userId, userId))
+      .orderBy(chatMessages.timestamp);
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -241,6 +260,7 @@ export class MemStorage implements IStorage {
   private scanHistoryItems: Map<number, ScanHistory> = new Map();
   private favoritesItems: Map<number, Favorite> = new Map();
   private shoppingListItemsMap: Map<number, ShoppingListItem> = new Map();
+  private chatMessagesMap: Map<number, ChatMessage> = new Map();
   
   private currentProductId = 1;
   private currentRetailerId = 1;
@@ -248,6 +268,7 @@ export class MemStorage implements IStorage {
   private currentScanHistoryId = 1;
   private currentFavoriteId = 1;
   private currentShoppingListId = 1;
+  private currentChatMessageId = 1;
 
   constructor() {
     this.seedData();
@@ -498,6 +519,22 @@ export class MemStorage implements IStorage {
     }
 
     return result;
+  }
+
+  async addChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const newMessage: ChatMessage = {
+      id: this.currentChatMessageId++,
+      ...message,
+      timestamp: new Date(),
+    };
+    this.chatMessagesMap.set(newMessage.id, newMessage);
+    return newMessage;
+  }
+
+  async getChatHistory(userId: string): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessagesMap.values())
+      .filter(message => message.userId === userId)
+      .sort((a, b) => a.timestamp!.getTime() - b.timestamp!.getTime());
   }
 }
 
