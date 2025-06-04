@@ -153,6 +153,9 @@ export default function ProductDetail() {
           </CardContent>
         </Card>
 
+        {/* Eco-Friendly Comparison */}
+        <EcoFriendlyComparison product={product} className="mb-6" />
+
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
