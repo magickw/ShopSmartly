@@ -1,8 +1,8 @@
 import { useParams, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3, Share2, MessageCircle, Mail, Copy } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3, Share2, MessageCircle, Mail, Copy, ExternalLink } from "lucide-react";
 import { SiX, SiFacebook, SiWhatsapp, SiTelegram } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
