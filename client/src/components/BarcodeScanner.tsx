@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Camera } from "lucide-react";
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcode: string) => void;
@@ -9,8 +9,11 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -27,12 +30,70 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setIsLoading(false);
+          videoRef.current.onloadedmetadata = () => {
+            setIsLoading(false);
+            startBarcodeDetection();
+          };
         }
       } catch (err) {
         console.error("Camera access error:", err);
         setError("Camera access denied or not available");
         setIsLoading(false);
+      }
+    };
+
+    const startBarcodeDetection = async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      
+      setIsScanning(true);
+      
+      // Check if BarcodeDetector is available
+      if ('BarcodeDetector' in window) {
+        try {
+          const barcodeDetector = new (window as any).BarcodeDetector({
+            formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
+          });
+          
+          const detectBarcodes = async () => {
+            if (!videoRef.current || !canvasRef.current) return;
+            
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
+            
+            if (!context) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            try {
+              const barcodes = await barcodeDetector.detect(canvas);
+              if (barcodes.length > 0) {
+                const barcode = barcodes[0].rawValue;
+                console.log('Barcode detected:', barcode);
+                onScanSuccess(barcode);
+                return;
+              }
+            } catch (err) {
+              console.error('Barcode detection error:', err);
+            }
+            
+            // Continue scanning
+            if (isScanning) {
+              scanIntervalRef.current = setTimeout(detectBarcodes, 100);
+            }
+          };
+          
+          // Start detection after video is ready
+          setTimeout(detectBarcodes, 1000);
+        } catch (err) {
+          console.error('BarcodeDetector initialization error:', err);
+          setError("Barcode detection not supported on this device");
+        }
+      } else {
+        console.log('BarcodeDetector not available, using fallback');
+        setError("Barcode detection not supported on this browser");
       }
     };
 
@@ -43,15 +104,18 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+      if (scanIntervalRef.current) {
+        clearTimeout(scanIntervalRef.current);
+      }
+      setIsScanning(false);
     };
-  }, []);
+  }, [onScanSuccess, isScanning]);
 
-  // Simulate barcode detection (in a real app, you'd use QuaggaJS or similar)
+  // Fallback function for testing when native detection isn't available
   const simulateScan = () => {
-    // Simulate finding a barcode after a delay
-    setTimeout(() => {
-      onScanSuccess("123456789012"); // Sample barcode
-    }, 1000);
+    const sampleBarcodes = ["123456789012", "789012345678", "456789012345"];
+    const randomBarcode = sampleBarcodes[Math.floor(Math.random() * sampleBarcodes.length)];
+    onScanSuccess(randomBarcode);
   };
 
   if (error) {
@@ -87,6 +151,12 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
         muted
         className="w-full h-full object-cover"
       />
+      
+      {/* Hidden canvas for barcode detection */}
+      <canvas
+        ref={canvasRef}
+        className="hidden"
+      />
 
       {/* Loading state */}
       {isLoading && (
@@ -113,14 +183,24 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
         </div>
       )}
 
-      {/* Instructions and test button */}
+      {/* Instructions and status */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-        <p className="text-white text-sm mb-4">Position barcode within the frame</p>
+        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-center mb-2">
+            <Camera className="w-5 h-5 text-white mr-2" />
+            <span className="text-white text-sm">
+              {isScanning ? "Scanning for barcodes..." : "Position barcode within the frame"}
+            </span>
+          </div>
+          {isScanning && (
+            <div className="w-4 h-4 bg-green-500 rounded-full mx-auto animate-pulse"></div>
+          )}
+        </div>
         <Button 
           onClick={simulateScan}
           className="bg-ios-blue hover:bg-ios-blue/90 text-white"
         >
-          Simulate Scan (Demo)
+          Test Scan (Demo)
         </Button>
       </div>
     </div>
