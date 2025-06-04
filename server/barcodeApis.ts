@@ -43,6 +43,23 @@ export async function fetchFromUPCItemDB(barcode: string): Promise<BarcodeApiRes
     
     if (data.code === "OK" && data.items && data.items.length > 0) {
       const item = data.items[0];
+      
+      // Extract merchant pricing from offers
+      const prices: PriceInfo[] = [];
+      if (item.offers && Array.isArray(item.offers)) {
+        for (const offer of item.offers) {
+          if (offer.merchant && offer.price) {
+            prices.push({
+              retailer: offer.merchant,
+              price: `$${(offer.price / 100).toFixed(2)}`,
+              currency: offer.currency || 'USD',
+              availability: offer.availability || 'Check availability',
+              url: offer.link
+            });
+          }
+        }
+      }
+      
       return {
         success: true,
         product: {
@@ -52,13 +69,14 @@ export async function fetchFromUPCItemDB(barcode: string): Promise<BarcodeApiRes
           imageUrl: item.images && item.images.length > 0 ? item.images[0] : undefined,
           category: item.category || undefined,
           upc: barcode
-        }
+        },
+        prices: prices
       };
     }
 
     return { success: false, error: "Product not found in UPC database" };
   } catch (error) {
-    return { success: false, error: `UPC API error: ${error.message}` };
+    return { success: false, error: `UPC API error: ${(error as Error).message}` };
   }
 }
 
@@ -100,7 +118,7 @@ export async function fetchFromBarcodeSpider(barcode: string): Promise<BarcodeAp
 
     return { success: false, error: "Product not found in Barcode Spider" };
   } catch (error) {
-    return { success: false, error: `Barcode Spider API error: ${error.message}` };
+    return { success: false, error: `Barcode Spider API error: ${(error as Error).message}` };
   }
 }
 
@@ -137,7 +155,7 @@ export async function fetchFromOpenFoodFacts(barcode: string): Promise<BarcodeAp
 
     return { success: false, error: "Product not found in Open Food Facts" };
   } catch (error) {
-    return { success: false, error: `Open Food Facts API error: ${error.message}` };
+    return { success: false, error: `Open Food Facts API error: ${(error as Error).message}` };
   }
 }
 

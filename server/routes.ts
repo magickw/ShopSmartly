@@ -114,20 +114,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const createdProduct = await storage.createProduct(productData);
           
-          // Fetch pricing data from merchant APIs
-          console.log(`Fetching pricing data from merchant APIs for: ${apiResult.product.name}`);
-          const pricingResult = await getAllMerchantPrices(barcode, apiResult.product.name);
-          
-          // Create retailers and prices from pricing APIs
-          for (const merchantPrice of pricingResult.prices) {
+          // Create retailers and prices from UPC Item DB offers
+          for (const priceInfo of apiResult.prices || []) {
             // Get or create retailer
             let retailers = await storage.getAllRetailers();
-            let retailer = retailers.find(r => r.name === merchantPrice.merchant);
+            let retailer = retailers.find(r => r.name === priceInfo.retailer);
             
             if (!retailer) {
               retailer = await storage.createRetailer({
-                name: merchantPrice.merchant,
-                logo: merchantPrice.merchant.charAt(0)
+                name: priceInfo.retailer,
+                logo: priceInfo.retailer.charAt(0)
               });
             }
 
@@ -135,11 +131,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createPrice({
               productId: createdProduct.id,
               retailerId: retailer.id,
-              price: `$${merchantPrice.price.toFixed(2)}`,
-              stock: merchantPrice.availability === 'in_stock' ? 'In Stock' : 
-                     merchantPrice.availability === 'out_of_stock' ? 'Out of Stock' : 'Check Availability',
-              url: merchantPrice.url || null
+              price: priceInfo.price,
+              stock: priceInfo.availability,
+              url: priceInfo.url || null
             });
+          }
+
+          // Also try to fetch additional pricing from merchant APIs if available
+          if (apiResult.prices && apiResult.prices.length === 0) {
+            console.log(`Fetching additional pricing data from merchant APIs for: ${apiResult.product.name}`);
+            const pricingResult = await getAllMerchantPrices(barcode, apiResult.product.name);
+            
+            for (const merchantPrice of pricingResult.prices) {
+              // Get or create retailer
+              let retailers = await storage.getAllRetailers();
+              let retailer = retailers.find(r => r.name === merchantPrice.merchant);
+              
+              if (!retailer) {
+                retailer = await storage.createRetailer({
+                  name: merchantPrice.merchant,
+                  logo: merchantPrice.merchant.charAt(0)
+                });
+              }
+
+              // Create price entry
+              await storage.createPrice({
+                productId: createdProduct.id,
+                retailerId: retailer.id,
+                price: `$${merchantPrice.price.toFixed(2)}`,
+                stock: merchantPrice.availability === 'in_stock' ? 'In Stock' : 
+                       merchantPrice.availability === 'out_of_stock' ? 'Out of Stock' : 'Check Availability',
+                url: merchantPrice.url || null
+              });
+            }
           }
 
           // Fetch the complete product with prices
