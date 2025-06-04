@@ -5,8 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart } from "lucide-react";
+import ScanLimitBanner from "@/components/ScanLimitBanner";
+import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import type { ScanHistory } from "@shared/schema";
 
 export default function Scanner() {
