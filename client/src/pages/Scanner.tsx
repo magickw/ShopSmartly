@@ -17,29 +17,86 @@ export default function Scanner() {
   const [showScanner, setShowScanner] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: recentScans = [] } = useQuery<ScanHistory[]>({
     queryKey: ["/api/history"],
   });
 
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ["/api/subscription/status"],
+    enabled: !!user,
+  });
+
+  const checkScanLimit = () => {
+    if (!subscriptionStatus) return true;
+
+    const { tier, scanLimits } = subscriptionStatus;
+    const isFreeTier = tier === "free" || !tier;
+    
+    if (!isFreeTier) return true; // Premium/Business users have unlimited scans
+
+    const scansUsed = scanLimits?.scansUsed || 0;
+    const dailyLimit = scanLimits?.dailyLimit || 10;
+    const scansRemaining = dailyLimit - scansUsed;
+
+    if (scansRemaining <= 0) {
+      toast({
+        title: "Daily Scan Limit Reached",
+        description: "Upgrade to Premium for unlimited scans",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (scansRemaining <= 2) {
+      toast({
+        title: `${scansRemaining} scans remaining`,
+        description: "Consider upgrading to Premium for unlimited scanning",
+      });
+    }
+
+    return true;
+  };
+
   const handleScanSuccess = (barcode: string) => {
+    if (!checkScanLimit()) return;
+    
     setShowScanner(false);
     setLocation(`/product/${barcode}`);
   };
 
   const handleManualSubmit = () => {
-    if (manualBarcode.trim()) {
-      setShowManualEntry(false);
-      setManualBarcode("");
-      setLocation(`/product/${manualBarcode.trim()}`);
-    }
+    if (!manualBarcode.trim()) return;
+    
+    if (!checkScanLimit()) return;
+    
+    setShowManualEntry(false);
+    setManualBarcode("");
+    setLocation(`/product/${manualBarcode.trim()}`);
   };
+
+  const handleStartScanning = () => {
+    if (!checkScanLimit()) return;
+    setShowScanner(true);
+  };
+
+  const isFreeTier = subscriptionStatus?.tier === "free" || !subscriptionStatus?.tier;
+  const scansRemaining = isFreeTier ? 
+    (subscriptionStatus?.scanLimits?.dailyLimit || 10) - (subscriptionStatus?.scanLimits?.scansUsed || 0) : 
+    null;
 
   return (
     <div className="px-4">
       {/* Header */}
       <div className="py-3 border-b border-gray-100">
         <h1 className="text-2xl font-bold text-center">PriceScan</h1>
+      </div>
+
+      {/* Scan Limit Banner */}
+      <div className="mt-4">
+        <ScanLimitBanner />
       </div>
 
       {/* Camera/Scanner Area */}
@@ -70,11 +127,30 @@ export default function Scanner() {
       {/* Action Buttons */}
       <div className="mt-6 space-y-3">
         <Button
-          onClick={() => setShowScanner(true)}
-          className="w-full bg-ios-blue hover:bg-ios-blue/90 text-white py-4 rounded-xl text-lg font-medium h-auto"
+          onClick={handleStartScanning}
+          disabled={isFreeTier && scansRemaining === 0}
+          className={`w-full py-4 rounded-xl text-lg font-medium h-auto ${
+            isFreeTier && scansRemaining === 0 
+              ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+              : 'bg-ios-blue hover:bg-ios-blue/90 text-white'
+          }`}
         >
-          <Camera className="mr-2 h-5 w-5" />
-          Start Scanning
+          {isFreeTier && scansRemaining === 0 ? (
+            <>
+              <Lock className="mr-2 h-5 w-5" />
+              Daily Limit Reached
+            </>
+          ) : (
+            <>
+              <Camera className="mr-2 h-5 w-5" />
+              Start Scanning
+              {isFreeTier && scansRemaining !== null && (
+                <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
+                  {scansRemaining} left
+                </span>
+              )}
+            </>
+          )}
         </Button>
         <Button
           onClick={() => setShowManualEntry(!showManualEntry)}
