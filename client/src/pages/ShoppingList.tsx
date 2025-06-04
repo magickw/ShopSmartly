@@ -432,25 +432,27 @@ export default function ShoppingList() {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center mb-3">
+                      <div className="flex items-start mb-3">
                         <Checkbox
                           checked={!!item.completed}
                           onCheckedChange={() => handleToggleCompleted(item)}
-                          className="mr-4 h-5 w-5"
+                          className="mr-4 h-5 w-5 mt-1"
                         />
-                        <div className="flex-1">
-                          <h3 className={`font-medium ${item.completed ? 'line-through text-gray-500' : ''}`}>
-                            {item.product.name}
-                          </h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className={`font-medium truncate ${item.completed ? 'line-through text-gray-500' : ''}`}>
+                              {item.product.name}
+                            </h3>
+                            <span className="text-sm font-semibold bg-ios-light-gray px-3 py-1 rounded-full ml-2 flex-shrink-0">
+                              {item.quantity}x
+                            </span>
+                          </div>
                           {item.product.brand && (
-                            <p className={`text-sm text-gray-600 ${item.completed ? 'line-through' : ''}`}>
+                            <p className={`text-sm text-gray-600 truncate ${item.completed ? 'line-through' : ''}`}>
                               {item.product.brand}
                             </p>
                           )}
                         </div>
-                        <span className="text-xs bg-ios-light-gray px-2 py-1 rounded-full mr-2">
-                          {item.quantity}x
-                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-green-600">
