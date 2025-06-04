@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3 } from "lucide-react";
+import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
@@ -17,6 +17,13 @@ interface Advertisement {
   advertiser: string;
   adType: string;
   placement: string;
+}
+
+interface ScanHistory {
+  id: number;
+  barcode: string;
+  productName: string;
+  scannedAt: string;
 }
 
 export default function Home() {
@@ -43,6 +50,11 @@ export default function Home() {
     const last = lastName?.charAt(0) || "";
     return first + last || "U";
   };
+
+  // Fetch recent scans (limit to 3)
+  const { data: recentScans = [] } = useQuery<ScanHistory[]>({
+    queryKey: ["/api/history"],
+  });
 
   const handleAdDismiss = (adId: number) => {
     toast({
@@ -206,12 +218,35 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Recent Scans
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 dark:text-gray-400">
-                Check your scan history to see recent price comparisons
-              </p>
+              {recentScans.length > 0 ? (
+                <div className="space-y-2">
+                  {recentScans.slice(0, 3).map((scan) => (
+                    <Link key={scan.id} href={`/product/${scan.barcode}`}>
+                      <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                        <p className="font-medium text-sm truncate">{scan.productName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{scan.barcode}</p>
+                      </div>
+                    </Link>
+                  ))}
+                  {recentScans.length > 3 && (
+                    <Link href="/history">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                        View all ({recentScans.length})
+                      </p>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  No recent scans. Start by scanning a product!
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -240,13 +275,13 @@ export default function Home() {
 
         {/* Developer Attribution */}
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Developed by{" "}
             <a 
               href="https://github.com/magickw" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-ios-blue hover:underline font-medium"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
             >
               Baofeng Guo
             </a>
