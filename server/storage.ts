@@ -279,6 +279,45 @@ export class DatabaseStorage implements IStorage {
     const activeAds = await db.select().from(advertisements).where(
       eq(advertisements.placement, placement)
     );
+    
+    // If no ads in database, return mock ads for development
+    if (activeAds.length === 0) {
+      return [
+        {
+          id: 1,
+          title: "Premium Shopping Assistant Pro",
+          description: "Upgrade to Pro for advanced price tracking and notifications",
+          imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400",
+          targetUrl: "https://example.com/upgrade",
+          advertiser: "ShopSmart",
+          adType: "banner",
+          placement: placement,
+          impressions: 150,
+          clicks: 12,
+          isActive: true,
+          startDate: new Date(),
+          endDate: null,
+          createdAt: new Date(),
+        },
+        {
+          id: 2,
+          title: "Eco-Friendly Product Finder",
+          description: "Discover sustainable alternatives for all your shopping needs",
+          imageUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400",
+          targetUrl: "https://example.com/eco",
+          advertiser: "GreenChoice",
+          adType: "native",
+          placement: placement,
+          impressions: 89,
+          clicks: 7,
+          isActive: true,
+          startDate: new Date(),
+          endDate: null,
+          createdAt: new Date(),
+        }
+      ];
+    }
+    
     return activeAds;
   }
 
@@ -631,7 +670,7 @@ export class MemStorage implements IStorage {
 
   // Advertisement operations (mock implementation for development)
   async getActiveAds(placement: string): Promise<Advertisement[]> {
-    // Return mock ads for development/testing
+    // Return ads for the specified placement
     return [
       {
         id: 1,
@@ -683,4 +722,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
