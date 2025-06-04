@@ -44,21 +44,43 @@ export async function fetchFromUPCItemDB(barcode: string): Promise<BarcodeApiRes
     if (data.code === "OK" && data.items && data.items.length > 0) {
       const item = data.items[0];
       
+      console.log(`UPC Item DB response for ${barcode}:`, JSON.stringify(item, null, 2));
+      
       // Extract merchant pricing from offers
       const prices: PriceInfo[] = [];
       if (item.offers && Array.isArray(item.offers)) {
+        console.log(`Found ${item.offers.length} offers in UPC Item DB response`);
         for (const offer of item.offers) {
+          console.log(`Processing offer:`, offer);
           if (offer.merchant && offer.price) {
-            prices.push({
+            const priceInfo = {
               retailer: offer.merchant,
               price: `$${parseFloat(offer.price).toFixed(2)}`,
               currency: offer.currency || 'USD',
               availability: offer.availability || offer.condition || 'Check availability',
               url: offer.link
-            });
+            };
+            console.log(`Adding price info:`, priceInfo);
+            prices.push(priceInfo);
           }
         }
+      } else {
+        console.log(`No offers found in UPC Item DB response for ${barcode}`);
       }
+      console.log(`Extracted ${prices.length} prices from UPC Item DB`);
+      
+      return {
+        success: true,
+        product: {
+          name: item.title || "Unknown Product",
+          brand: item.brand || undefined,
+          description: item.description || undefined,
+          imageUrl: item.images && item.images.length > 0 ? item.images[0] : undefined,
+          category: item.category || undefined,
+          upc: barcode
+        },
+        prices: prices
+      };
       
       return {
         success: true,

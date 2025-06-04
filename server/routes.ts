@@ -115,7 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const createdProduct = await storage.createProduct(productData);
           
           // Create retailers and prices from UPC Item DB offers
+          console.log(`Found ${apiResult.prices?.length || 0} merchant offers from UPC Item DB`);
           for (const priceInfo of apiResult.prices || []) {
+            console.log(`Creating price entry for ${priceInfo.retailer}: ${priceInfo.price}`);
             // Get or create retailer
             let retailers = await storage.getAllRetailers();
             let retailer = retailers.find(r => r.name === priceInfo.retailer);
@@ -125,6 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: priceInfo.retailer,
                 logo: priceInfo.retailer.charAt(0)
               });
+              console.log(`Created new retailer: ${retailer.name}`);
             }
 
             // Create price entry
