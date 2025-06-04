@@ -34,6 +34,7 @@ export default function ProductDetail() {
     onSuccess: (data) => {
       setNeedsScan(false);
       queryClient.invalidateQueries({ queryKey: [`/api/products`, params.barcode] });
+      queryClient.invalidateQueries({ queryKey: ["/api/history"] });
     },
     onError: (error) => {
       toast({
@@ -153,6 +154,10 @@ export default function ProductDetail() {
           {product.brand && (
             <p className="text-ios-gray mb-2">{product.brand}</p>
           )}
+          <div className="bg-gray-100 rounded-lg p-3 mb-3">
+            <p className="text-xs text-gray-500 mb-1">Barcode</p>
+            <p className="font-mono text-sm font-medium">{product.barcode}</p>
+          </div>
           {product.description && (
             <p className="text-sm text-ios-gray">{product.description}</p>
           )}
