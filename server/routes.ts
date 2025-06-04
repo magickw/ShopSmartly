@@ -15,9 +15,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Simple in-memory scan tracking
-let dailyScanCount = 0;
-const DAILY_SCAN_LIMIT = 10;
+
 
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
   try {
@@ -66,17 +64,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get product by barcode (for browsing - no scan limit impact)
+  // Get product by barcode (for browsing - includes scan history tracking)
   app.get("/api/products/:barcode", async (req, res) => {
     try {
       const { barcode } = req.params;
+      const { addToHistory } = req.query;
       
       let product = await storage.getProductByBarcode(barcode);
+      
+      if (!product) {
+        // Try to fetch from external APIs if not found
+        console.log(`Fetching product data from APIs for barcode: ${barcode}`);
+        const apiResult = await fetchProductData(barcode);
+        
+        if (apiResult.product) {
+          const productData = {
+            barcode,
+            name: apiResult.product.name,
+            brand: apiResult.product.brand || null,
+            description: apiResult.product.description || null,
+            imageUrl: apiResult.product.imageUrl || null,
+            ecoScore: null,
+            carbonFootprint: null,
+            recyclingInfo: null,
+            sustainabilityCertifications: null,
+            packagingType: null,
+            isEcoFriendly: null
+          };
+
+          const createdProduct = await storage.createProduct(productData);
+          product = { ...createdProduct, prices: [] };
+          
+          if (apiResult.prices && apiResult.prices.length > 0) {
+            for (const priceInfo of apiResult.prices) {
+              let retailers = await storage.getAllRetailers();
+              let retailer = retailers.find(r => r.name === priceInfo.retailer);
+              
+              if (!retailer) {
+                retailer = await storage.createRetailer({
+                  name: priceInfo.retailer,
+                  logo: priceInfo.retailer.charAt(0),
+                  affiliateProgram: null,
+                  affiliateCommissionRate: null,
+                  affiliateBaseUrl: null
+                });
+              }
+
+              await storage.createPrice({
+                productId: product.id,
+                retailerId: retailer.id,
+                price: priceInfo.price,
+                stock: priceInfo.availability,
+                url: priceInfo.url || null
+              });
+            }
+            
+            product = await storage.getProductByBarcode(barcode);
+          }
+        }
+      }
       
       if (!product) {
         return res.status(404).json({ 
           message: "Product not found",
           suggestion: "Try scanning this product to add it to our database"
+        });
+      }
+
+      // Add to scan history if requested (for manual barcode entries)
+      if (addToHistory === 'true') {
+        await storage.addScanHistory({
+          barcode,
+          productName: product.name
         });
       }
 
@@ -184,8 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productName: product.name
       });
 
-      // Increment scan count for daily limit tracking
-      dailyScanCount++;
+
 
       let bestPrice = "N/A";
       if (product.prices && product.prices.length > 0) {
