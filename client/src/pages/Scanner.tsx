@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import ScanLimitBanner from "@/components/ScanLimitBanner";
 import QuickShareButton from "@/components/QuickShareButton";
 import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,53 +24,15 @@ export default function Scanner() {
     queryKey: ["/api/history"],
   });
 
-  const { data: subscriptionStatus } = useQuery({
-    queryKey: ["/api/subscription/status"],
-    enabled: !!user,
-  });
 
-  const checkScanLimit = () => {
-    if (!subscriptionStatus) return true;
-
-    const { tier, scanLimits } = subscriptionStatus;
-    const isFreeTier = tier === "free" || !tier;
-    
-    if (!isFreeTier) return true; // Premium/Business users have unlimited scans
-
-    const scansUsed = scanLimits?.scansUsed || 0;
-    const dailyLimit = scanLimits?.dailyLimit || 10;
-    const scansRemaining = dailyLimit - scansUsed;
-
-    if (scansRemaining <= 0) {
-      toast({
-        title: "Daily Scan Limit Reached",
-        description: "Upgrade to Premium for unlimited scans",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (scansRemaining <= 2) {
-      toast({
-        title: `${scansRemaining} scans remaining`,
-        description: "Consider upgrading to Premium for unlimited scanning",
-      });
-    }
-
-    return true;
-  };
 
   const handleScanSuccess = (barcode: string) => {
-    if (!checkScanLimit()) return;
-    
     setShowScanner(false);
     setLocation(`/product/${barcode}`);
   };
 
   const handleManualSubmit = () => {
     if (!manualBarcode.trim()) return;
-    
-    if (!checkScanLimit()) return;
     
     setShowManualEntry(false);
     setManualBarcode("");
@@ -95,10 +56,7 @@ export default function Scanner() {
         <h1 className="text-2xl font-bold text-center">PriceScan</h1>
       </div>
 
-      {/* Scan Limit Banner */}
-      <div className="mt-4">
-        <ScanLimitBanner />
-      </div>
+
 
       {/* Camera/Scanner Area */}
       <div className="relative bg-black h-80 mt-6 rounded-xl overflow-hidden">

@@ -6,7 +6,6 @@ import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Cl
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
-import ScanLimitBanner from "@/components/ScanLimitBanner";
 import QuickShareButton from "@/components/QuickShareButton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -104,8 +103,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Scan Limit Banner for Free Users */}
-        <ScanLimitBanner />
+
 
         {/* Header with user info */}
         <div className="flex items-center justify-between mb-8">
