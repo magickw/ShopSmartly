@@ -178,7 +178,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearScanHistory(): Promise<void> {
-    await db.delete(scanHistory);
+    try {
+      await db.delete(scanHistory);
+    } catch (error) {
+      console.error("Error clearing scan history:", error);
+      throw new Error("Failed to clear scan history");
+    }
   }
 
   async addFavorite(favorite: InsertFavorite): Promise<Favorite> {
