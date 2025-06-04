@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3 } from "lucide-react";
+import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3, Share2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,38 @@ export default function ProductDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [needsScan, setNeedsScan] = useState(false);
+
+  const handleShare = async () => {
+    if (!scanResult?.product) return;
+
+    const { product, bestPrice } = scanResult;
+    const shareData = {
+      title: `${product.name} - Price Comparison`,
+      text: `Check out this product: ${product.name} ${product.brand ? `by ${product.brand}` : ''}\nBest price: ${bestPrice}\nBarcode: ${product.barcode}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard
+        const shareText = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Link copied!",
+          description: "Product details copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: "Share failed",
+        description: "Could not share this product",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: scanResult, isLoading, error } = useQuery<ScanResult>({
     queryKey: [`/api/products`, params.barcode],
@@ -130,6 +162,14 @@ export default function ProductDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">Product Details</h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleShare}
+          className="text-blue-600 mr-2"
+        >
+          <Share2 className="h-5 w-5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

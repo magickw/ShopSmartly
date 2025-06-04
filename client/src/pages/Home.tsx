@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Clock } from "lucide-react";
+import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Clock, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
@@ -61,6 +61,37 @@ export default function Home() {
       title: "Ad dismissed",
       description: "This ad has been hidden from your view.",
     });
+  };
+
+  const handleShareScan = async (scan: ScanHistory, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shareData = {
+      title: `${scan.productName} - Price Comparison`,
+      text: `Check out this product: ${scan.productName}\nBarcode: ${scan.barcode}`,
+      url: `${window.location.origin}/product/${scan.barcode}`
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        const shareText = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Link copied!",
+          description: "Product link copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: "Share failed",
+        description: "Could not share this product",
+        variant: "destructive",
+      });
+    }
   };
 
   // Debug logging
@@ -227,12 +258,22 @@ export default function Home() {
               {recentScans.length > 0 ? (
                 <div className="space-y-2">
                   {recentScans.slice(0, 3).map((scan) => (
-                    <Link key={scan.id} href={`/product/${scan.barcode}`}>
-                      <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                        <p className="font-medium text-sm truncate">{scan.productName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{scan.barcode}</p>
-                      </div>
-                    </Link>
+                    <div key={scan.id} className="relative group">
+                      <Link href={`/product/${scan.barcode}`}>
+                        <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                          <p className="font-medium text-sm truncate pr-8">{scan.productName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{scan.barcode}</p>
+                        </div>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleShareScan(scan, e)}
+                      >
+                        <Share2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   ))}
                   {recentScans.length > 3 && (
                     <Link href="/history">
