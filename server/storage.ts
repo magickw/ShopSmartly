@@ -115,7 +115,8 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(scanHistory)
-      .orderBy(scanHistory.scannedAt);
+      .orderBy(scanHistory.scannedAt)
+      .limit(50);
   }
 
   async addFavorite(favorite: InsertFavorite): Promise<Favorite> {
