@@ -90,6 +90,7 @@ export default function ShoppingList() {
       return apiRequest("POST", "/api/shopping-list", {
         productId: product.id,
         quantity: newItemQuantity,
+        unitPrice: newItemPrice || null,
       });
     },
     onSuccess: () => {
@@ -194,6 +195,7 @@ export default function ShoppingList() {
     setEditName(item.product.name);
     setEditBrand(item.product.brand || "");
     setEditQuantity(item.quantity || 1);
+    setEditPrice(item.unitPrice || "");
   };
 
   const saveEdit = (item: ShoppingListItemWithProduct) => {
@@ -205,10 +207,13 @@ export default function ShoppingList() {
       },
     });
     
-    if (editQuantity !== item.quantity) {
+    if (editQuantity !== item.quantity || editPrice !== item.unitPrice) {
       updateItemMutation.mutate({
         id: item.id,
-        updates: { quantity: editQuantity },
+        updates: { 
+          quantity: editQuantity,
+          unitPrice: editPrice || null
+        },
       });
     }
   };
@@ -218,6 +223,7 @@ export default function ShoppingList() {
     setEditName("");
     setEditBrand("");
     setEditQuantity(1);
+    setEditPrice("");
   };
 
   if (isLoading) {
@@ -376,13 +382,22 @@ export default function ShoppingList() {
                         placeholder="Brand (optional)"
                         className="text-sm"
                       />
-                      <Input
-                        type="number"
-                        min="1"
-                        value={editQuantity}
-                        onChange={(e) => setEditQuantity(parseInt(e.target.value) || 1)}
-                        className="text-sm"
-                      />
+                      <div className="flex space-x-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={editQuantity}
+                          onChange={(e) => setEditQuantity(parseInt(e.target.value) || 1)}
+                          placeholder="Qty"
+                          className="text-sm flex-1"
+                        />
+                        <Input
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          placeholder="Unit price (e.g., $2.99)"
+                          className="text-sm flex-2"
+                        />
+                      </div>
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
@@ -426,7 +441,7 @@ export default function ShoppingList() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-green-600">
-                          Est. {getEstimatedPrice(item.product)}
+                          Est. {getEstimatedPrice(item)}
                         </span>
                         <div className="flex space-x-1">
                           <Button
