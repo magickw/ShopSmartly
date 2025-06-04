@@ -124,7 +124,7 @@ export default function Scanner() {
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-4">Recent Scans</h2>
           <div className="space-y-3">
-            {recentScans.map((scan) => (
+            {recentScans.slice(0, 1).map((scan) => (
               <Card key={scan.id} className="bg-ios-light-gray border-0 cursor-pointer hover:bg-gray-100 transition-colors">
                 <CardContent className="p-4 flex items-center">
                   <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
