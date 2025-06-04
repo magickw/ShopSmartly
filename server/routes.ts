@@ -413,6 +413,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Monetization endpoints
+  app.get("/api/subscription/status", async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const status = await monetizationService.checkSubscriptionStatus(userId);
+      const scanLimits = await monetizationService.checkScanLimit(userId);
+      
+      res.json({
+        ...status,
+        scanLimits
+      });
+    } catch (error) {
+      console.error("Subscription status error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/subscription/subscribe", async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { planId } = req.body;
+      
+      // For demo purposes, immediately activate subscription
+      // In production, integrate with payment processor
+      if (planId === "free") {
+        await storage.updateUserSubscription(userId, {
+          subscriptionTier: "free",
+          subscriptionExpiresAt: null
+        });
+      } else {
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+        
+        await storage.updateUserSubscription(userId, {
+          subscriptionTier: planId,
+          subscriptionExpiresAt: expiresAt
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Subscription updated successfully"
+      });
+    } catch (error) {
+      console.error("Subscribe error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/analytics/revenue", async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has analytics access
+      const hasAccess = await monetizationService.hasFeatureAccess(userId, 'analytics');
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Premium subscription required for analytics" });
+      }
+
+      const days = parseInt(req.query.days as string) || 30;
+      const analytics = await monetizationService.getRevenueAnalytics(days);
+      
+      // Track feature usage
+      await monetizationService.trackFeatureUsage(userId, 'analytics');
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Revenue analytics error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/affiliate/click", async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || null;
+      const { productId, retailerId, originalUrl } = req.body;
+
+      const affiliateUrl = await monetizationService.generateAffiliateUrl(
+        userId,
+        productId,
+        retailerId,
+        originalUrl
+      );
+
+      res.json({ affiliateUrl });
+    } catch (error) {
+      console.error("Affiliate click error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

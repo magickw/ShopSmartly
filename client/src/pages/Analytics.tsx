@@ -1,311 +1,272 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Clock, Target, BarChart3, Leaf } from "lucide-react";
-import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import EcoAnalyticsDashboard from "@/components/EcoAnalyticsDashboard";
-import type { ScanHistory, ProductWithPrices, ShoppingListItem } from "@shared/schema";
-
-interface AnalyticsData {
-  totalScans: number;
-  totalSavings: number;
-  favoriteCategories: { category: string; count: number }[];
-  scanFrequency: { date: string; count: number }[];
-  topRetailers: { name: string; savings: number }[];
-  recentTrends: { product: string; priceChange: number; trend: 'up' | 'down' }[];
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TrendingUp, DollarSign, Users, Target, Crown, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import SubscriptionPlans from "@/components/SubscriptionPlans";
+import type { RevenueAnalytics } from "@shared/schema";
 
 export default function Analytics() {
-  const [, setLocation] = useLocation();
-  const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month');
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [timeRange, setTimeRange] = useState("30");
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
 
-  const { data: scanHistory = [] } = useQuery<ScanHistory[]>({
-    queryKey: ["/api/history"],
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ["/api/subscription/status"],
+    enabled: !!user,
   });
 
-  const { data: shoppingList = [] } = useQuery<(ShoppingListItem & { product: ProductWithPrices })[]>({
-    queryKey: ["/api/shopping-list"],
+  const { data: analytics, isLoading, error } = useQuery({
+    queryKey: ["/api/analytics/revenue", timeRange],
+    enabled: !!user && subscriptionStatus?.tier !== "free",
+    retry: false,
   });
 
-  // Calculate analytics from real data
-  const analyticsData: AnalyticsData = {
-    totalScans: scanHistory.length,
-    totalSavings: scanHistory.reduce((total, scan) => {
-      // Extract savings from price comparison
-      const price = parseFloat(scan.bestPrice?.replace(/[$,]/g, '') || '0');
-      return total + (price * 0.1); // Assume 10% average savings
-    }, 0),
-    favoriteCategories: [
-      { category: 'Electronics', count: scanHistory.filter(s => s.productName.includes('iPhone')).length },
-      { category: 'Food & Beverages', count: scanHistory.filter(s => s.productName.includes('Coca-Cola')).length },
-      { category: 'Household', count: Math.floor(scanHistory.length * 0.3) }
-    ].filter(cat => cat.count > 0),
-    scanFrequency: getLast7Days().map(date => ({
-      date,
-      count: scanHistory.filter(scan => 
-        new Date(scan.scannedAt!).toDateString() === new Date(date).toDateString()
-      ).length
-    })),
-    topRetailers: [
-      { name: 'Amazon', savings: 45.20 },
-      { name: 'Target', savings: 32.15 },
-      { name: 'Walmart', savings: 28.90 }
-    ],
-    recentTrends: [
-      { product: 'iPhone 15 Pro Max', priceChange: -5.2, trend: 'down' },
-      { product: 'Coca-Cola Classic', priceChange: 2.1, trend: 'up' }
-    ]
-  };
-
-  function getLast7Days(): string[] {
-    const dates = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-    return dates;
+  if (authLoading) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+          <div className="grid md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const getTimeframeLabel = () => {
-    switch (timeframe) {
-      case 'week': return 'Last 7 Days';
-      case 'month': return 'Last 30 Days';
-      case 'year': return 'Last Year';
-    }
-  };
+  const hasAnalyticsAccess = subscriptionStatus?.tier === "premium" || subscriptionStatus?.tier === "business";
+
+  if (!hasAnalyticsAccess) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="text-center py-12">
+          <Lock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Premium Analytics</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            Get detailed insights into revenue, conversions, and business performance with our premium analytics dashboard.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+            <Badge variant="outline" className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              Premium Feature
+            </Badge>
+            <span className="text-sm text-gray-500">
+              Current plan: {subscriptionStatus?.tier || "Free"}
+            </span>
+          </div>
+
+          <Button 
+            onClick={() => setShowSubscriptions(true)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Upgrade to Premium
+          </Button>
+        </div>
+
+        {showSubscriptions && (
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold mb-6 text-center">Choose Your Plan</h2>
+            <SubscriptionPlans 
+              currentPlan={subscriptionStatus?.tier || "free"}
+              onPlanSelect={() => {
+                toast({
+                  title: "Plan Updated",
+                  description: "Your subscription has been updated successfully.",
+                });
+                setShowSubscriptions(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
+          <p className="text-red-500">Failed to load analytics data. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center px-4 py-3 border-b border-gray-100">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation("/")}
-          className="text-ios-blue mr-3"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-lg font-semibold flex-1">Shopping Analytics</h1>
-        <BarChart3 className="h-5 w-5 text-blue-600" />
+    <div className="container mx-auto p-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">Analytics Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Revenue insights and business performance metrics
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4 mt-4 sm:mt-0">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 days</SelectItem>
+              <SelectItem value="30">30 days</SelectItem>
+              <SelectItem value="90">90 days</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Badge variant="secondary" className="flex items-center gap-2">
+            <Crown className="h-3 w-3" />
+            {subscriptionStatus?.tier}
+          </Badge>
+        </div>
       </div>
 
-      <div className="px-4 py-6">
-        {/* Timeframe Selector */}
-        <div className="flex gap-2 mb-6">
-          {(['week', 'month', 'year'] as const).map((period) => (
-            <Button
-              key={period}
-              variant={timeframe === period ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimeframe(period)}
-              className="flex-1"
-            >
-              {period === 'week' ? '7D' : period === 'month' ? '30D' : '1Y'}
-            </Button>
+      {isLoading ? (
+        <div className="grid md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+              </CardContent>
+            </Card>
           ))}
         </div>
+      ) : analytics ? (
+        <div className="space-y-6">
+          {/* Key Metrics */}
+          <div className="grid md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${analytics.totalRevenue}</div>
+                <p className="text-xs text-muted-foreground">
+                  Last {timeRange} days
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Analytics Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview">Shopping Analytics</TabsTrigger>
-            <TabsTrigger value="environmental">Environmental Impact</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Subscribers</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.activeSubscribers}</div>
+                <p className="text-xs text-muted-foreground">
+                  Premium & Business plans
+                </p>
+              </CardContent>
+            </Card>
 
-            {/* Key Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{analyticsData.totalScans}</p>
-                  <p className="text-sm text-gray-600">Total Scans</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.conversionRate.toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Affiliate clicks to sales
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-green-600" />
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg Revenue/User</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${analytics.averageRevenuePerUser}</div>
+                <p className="text-xs text-muted-foreground">
+                  Per active subscriber
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Revenue Breakdown */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Sources</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Subscriptions</span>
+                  <span className="font-semibold">${analytics.subscriptionRevenue}</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">${analyticsData.totalSavings.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">Total Savings</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Affiliate Commissions</span>
+                  <span className="font-semibold">${analytics.affiliateRevenue}</span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Advertisements</span>
+                  <span className="font-semibold">${analytics.adRevenue}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between items-center font-bold">
+                    <span>Total</span>
+                    <span>${analytics.totalRevenue}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Affiliate Partners</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {analytics.topAffiliatePartners.map((partner, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{partner.retailer}</div>
+                        <div className="text-xs text-gray-500">
+                          {partner.clicks} clicks • {partner.conversions} conversions
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">${partner.revenue}</div>
+                        <div className="text-xs text-gray-500">
+                          {partner.conversions > 0 ? ((partner.conversions / partner.clicks) * 100).toFixed(1) : 0}% CVR
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {analytics.topAffiliatePartners.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      No affiliate data available yet
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Scan Frequency Chart */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Scan Activity - {getTimeframeLabel()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analyticsData.scanFrequency.map((day, index) => (
-                <div key={day.date} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 w-16">
-                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                  </span>
-                  <Progress 
-                    value={day.count * 20} 
-                    className="flex-1 h-2" 
-                  />
-                  <span className="text-sm font-medium w-8">{day.count}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Categories */}
-        {analyticsData.favoriteCategories.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Top Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {analyticsData.favoriteCategories.map((category, index) => (
-                  <div key={category.category} className="flex items-center justify-between">
-                    <span className="font-medium">{category.category}</span>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={(category.count / analyticsData.totalScans) * 100} 
-                        className="w-24 h-2" 
-                      />
-                      <span className="text-sm text-gray-600">{category.count}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Savings by Retailer */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Savings by Retailer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analyticsData.topRetailers.map((retailer, index) => (
-                <div key={retailer.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
-                        {retailer.name.charAt(0)}
-                      </span>
-                    </div>
-                    <span className="font-medium">{retailer.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-green-600">${retailer.savings.toFixed(2)}</span>
-                    <p className="text-xs text-gray-600">saved</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Price Trends */}
-        {analyticsData.recentTrends.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Price Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {analyticsData.recentTrends.map((trend, index) => (
-                  <div key={trend.product} className="flex items-center justify-between">
-                    <span className="font-medium">{trend.product}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={trend.trend === 'down' ? 'default' : 'secondary'}
-                        className={trend.trend === 'down' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
-                      >
-                        {trend.trend === 'down' ? '↓' : '↑'} {Math.abs(trend.priceChange)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Shopping Insights */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Shopping Insights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Target className="h-5 w-5 text-blue-600 mt-1" />
-                <div>
-                  <p className="font-medium">Best Shopping Day</p>
-                  <p className="text-sm text-gray-600">
-                    {analyticsData.scanFrequency.reduce((best, day) => 
-                      day.count > best.count ? day : best
-                    ).count > 0 ? 
-                      new Date(analyticsData.scanFrequency.reduce((best, day) => 
-                        day.count > best.count ? day : best
-                      ).date).toLocaleDateString('en-US', { weekday: 'long' }) : 
-                      'No scans yet'
-                    }
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <ShoppingCart className="h-5 w-5 text-green-600 mt-1" />
-                <div>
-                  <p className="font-medium">Shopping List Items</p>
-                  <p className="text-sm text-gray-600">{shoppingList.length} items tracked</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-purple-600 mt-1" />
-                <div>
-                  <p className="font-medium">Average Savings</p>
-                  <p className="text-sm text-gray-600">
-                    {analyticsData.totalScans > 0 ? 
-                      `$${(analyticsData.totalSavings / analyticsData.totalScans).toFixed(2)} per scan` : 
-                      'Start scanning to see savings'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-            </TabsContent>
-
-            <TabsContent value="environmental" className="space-y-6 mt-6">
-              <EcoAnalyticsDashboard />
-            </TabsContent>
-          </Tabs>
-      </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No analytics data available</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -182,6 +182,28 @@ export default function ProductDetail() {
     },
   });
 
+  const affiliateClickMutation = useMutation({
+    mutationFn: async ({ productId, retailerId, originalUrl }: { productId: number, retailerId: number, originalUrl: string }) => {
+      const response = await apiRequest("POST", "/api/affiliate/click", {
+        productId,
+        retailerId,
+        originalUrl
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Open affiliate URL in new tab
+      window.open(data.affiliateUrl, '_blank');
+    },
+    onError: () => {
+      toast({ 
+        title: "Affiliate link error", 
+        description: "Failed to generate affiliate link",
+        variant: "destructive" 
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="px-4 py-6">
@@ -384,6 +406,45 @@ export default function ProductDetail() {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Compare Eco Products
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Shopping Links with Affiliate Marketing */}
+        {scanResult?.product?.prices && scanResult.product.prices.length > 0 && (
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ExternalLink className="h-5 w-5 text-blue-600" />
+                Shop Now
+              </CardTitle>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Compare prices and buy from trusted retailers
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {scanResult.product.prices.map((priceData) => (
+                <Button
+                  key={priceData.id}
+                  onClick={() => affiliateClickMutation.mutate({
+                    productId: scanResult.product.id,
+                    retailerId: priceData.retailer.id,
+                    originalUrl: `https://${priceData.retailer.name.toLowerCase()}.com/search?q=${encodeURIComponent(scanResult.product.name)}`
+                  })}
+                  disabled={affiliateClickMutation.isPending}
+                  variant="outline"
+                  className="w-full justify-between hover:bg-blue-100 dark:hover:bg-blue-900"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{priceData.retailer.logo}</span>
+                    <span className="font-medium">{priceData.retailer.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600">{priceData.price}</div>
+                    <div className="text-xs text-gray-500">{priceData.stock || 'Available'}</div>
+                  </div>
+                </Button>
+              ))}
             </CardContent>
           </Card>
         )}
