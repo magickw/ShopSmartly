@@ -243,7 +243,7 @@ export default function EcoComparison() {
           ) : (
             <div className="space-y-3">
               {filteredProducts.map((product) => {
-                const isSelected = selectedProducts.find(p => p.id === product.id);
+                const isSelected = !!selectedProducts.find(p => p.id === product.id);
                 const canAdd = selectedProducts.length < 3;
                 
                 return (

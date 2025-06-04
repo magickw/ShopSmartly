@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Scan, Heart, ShoppingCart, History, QrCode, LogOut } from "lucide-react";
+import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Home() {
@@ -106,6 +106,18 @@ export default function Home() {
                 <CardTitle>QR Generator</CardTitle>
                 <CardDescription>
                   Create QR codes for sharing information
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/eco-comparison">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader className="text-center">
+                <Leaf className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                <CardTitle>Eco Comparison</CardTitle>
+                <CardDescription>
+                  Compare environmental impact of products
                 </CardDescription>
               </CardHeader>
             </Card>
