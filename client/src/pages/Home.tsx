@@ -8,13 +8,30 @@ import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
 import { useToast } from "@/hooks/use-toast";
 
+interface Advertisement {
+  id: number;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  targetUrl: string | null;
+  advertiser: string;
+  adType: string;
+  placement: string;
+}
+
 export default function Home() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: homeAds = [] } = useQuery({
+  const { data: homeAds = [], isLoading: adsLoading, error: adsError } = useQuery<Advertisement[]>({
     queryKey: ["/api/ads/home"],
-    queryFn: () => fetch("/api/ads/home").then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch("/api/ads/home");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   const handleLogout = () => {
@@ -33,6 +50,11 @@ export default function Home() {
       description: "This ad has been hidden from your view.",
     });
   };
+
+  // Debug logging
+  console.log("Home ads data:", homeAds);
+  console.log("Ads loading:", adsLoading);
+  console.log("Ads error:", adsError);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
