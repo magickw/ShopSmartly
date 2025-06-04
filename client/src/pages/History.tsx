@@ -11,6 +11,15 @@ export default function History() {
     queryKey: ["/api/history"],
   });
 
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/history", "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+    },
+  });
+
   const groupedHistory = scanHistory.reduce((groups, scan) => {
     const date = new Date(scan.scannedAt!).toLocaleDateString();
     if (!groups[date]) {
@@ -53,8 +62,20 @@ export default function History() {
 
   return (
     <div className="px-4">
-      <div className="py-3 border-b border-gray-100">
+      <div className="py-3 border-b border-gray-100 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Scan History</h1>
+        {scanHistory.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => clearHistoryMutation.mutate()}
+            disabled={clearHistoryMutation.isPending}
+            className="text-gray-500 hover:text-red-500"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Clear
+          </Button>
+        )}
       </div>
 
       <div className="mt-6">
