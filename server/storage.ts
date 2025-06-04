@@ -5,6 +5,7 @@ import {
   scanHistory,
   favorites,
   shoppingListItems,
+  users,
   type Product,
   type InsertProduct,
   type Retailer,
@@ -18,11 +19,17 @@ import {
   type ShoppingListItem,
   type InsertShoppingListItem,
   type ProductWithPrices,
+  type User,
+  type UpsertUser,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations (required for authentication)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
   // Products
   getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -52,6 +59,27 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // User operations (required for authentication)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
   async getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined> {
     const [product] = await db.select().from(products).where(eq(products.barcode, barcode));
     if (!product) return undefined;
@@ -202,6 +230,7 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User> = new Map();
   private products: Map<number, Product> = new Map();
   private retailers: Map<number, Retailer> = new Map();
   private prices: Map<number, Price> = new Map();
@@ -218,6 +247,23 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.seedData();
+  }
+
+  // User operations (required for authentication)
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id);
+    const user: User = {
+      ...existingUser,
+      ...userData,
+      createdAt: existingUser?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(userData.id, user);
+    return user;
   }
 
   private seedData() {
