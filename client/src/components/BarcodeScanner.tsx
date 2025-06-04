@@ -127,21 +127,13 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
           <p className="text-gray-300 mb-6 text-sm">
             Camera access is required for barcode scanning. Please check your browser permissions or try the test scan feature.
           </p>
-          <div className="space-y-3">
-            <Button 
-              onClick={simulateScan}
-              className="w-full bg-ios-blue hover:bg-ios-blue/90 text-white"
-            >
-              Test Scan (Demo)
-            </Button>
-            <Button 
-              onClick={onClose} 
-              variant="outline" 
-              className="w-full text-white border-white hover:bg-white hover:text-black"
-            >
-              Close Scanner
-            </Button>
-          </div>
+          <Button 
+            onClick={onClose} 
+            variant="outline" 
+            className="w-full text-white border-white hover:bg-white hover:text-black"
+          >
+            Close Scanner
+          </Button>
         </div>
       </div>
     );
@@ -212,12 +204,7 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
             <div className="w-4 h-4 bg-green-500 rounded-full mx-auto animate-pulse"></div>
           )}
         </div>
-        <Button 
-          onClick={simulateScan}
-          className="bg-ios-blue hover:bg-ios-blue/90 text-white"
-        >
-          Test Scan (Demo)
-        </Button>
+
       </div>
     </div>
   );
