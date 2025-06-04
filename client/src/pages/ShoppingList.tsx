@@ -134,6 +134,43 @@ export default function ShoppingList() {
     return bestPrice.price;
   };
 
+  const calculateTotalEstimate = () => {
+    if (!shoppingListItems) return 0;
+    
+    return shoppingListItems.reduce((total, item) => {
+      if (item.product.prices.length === 0) return total;
+      
+      const bestPrice = item.product.prices.reduce((min, current) => {
+        const currentPrice = parseFloat(current.price.replace('$', ''));
+        const minPrice = parseFloat(min.price.replace('$', ''));
+        return currentPrice < minPrice ? current : min;
+      });
+      
+      const price = parseFloat(bestPrice.price.replace('$', ''));
+      const quantity = item.quantity || 1;
+      
+      return total + (price * quantity);
+    }, 0);
+  };
+
+  const totalEstimate = calculateTotalEstimate();
+  const completedTotal = shoppingListItems?.filter(item => item.completed).reduce((total, item) => {
+    if (item.product.prices.length === 0) return total;
+    
+    const bestPrice = item.product.prices.reduce((min, current) => {
+      const currentPrice = parseFloat(current.price.replace('$', ''));
+      const minPrice = parseFloat(min.price.replace('$', ''));
+      return currentPrice < minPrice ? current : min;
+    });
+    
+    const price = parseFloat(bestPrice.price.replace('$', ''));
+    const quantity = item.quantity || 1;
+    
+    return total + (price * quantity);
+  }, 0) || 0;
+
+  const remainingTotal = totalEstimate - completedTotal;
+
   const startEditing = (item: ShoppingListItemWithProduct) => {
     setEditingItem(item.id);
     setEditName(item.product.name);
