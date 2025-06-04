@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Clock, Share2 } from "lucide-react";
+import { Scan, Heart, ShoppingCart, History, QrCode, LogOut, Leaf, BarChart3, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
@@ -274,7 +274,7 @@ export default function Home() {
                         <QuickShareButton
                           productName={scan.productName}
                           barcode={scan.barcode}
-                          bestPrice={scan.bestPrice}
+                          bestPrice={scan.bestPrice || undefined}
                           size="sm"
                           variant="ghost"
                           className="h-6 w-6 p-0"

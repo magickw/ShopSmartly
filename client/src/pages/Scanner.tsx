@@ -214,20 +214,32 @@ export default function Scanner() {
           </div>
           <div className="space-y-3">
             {recentScans.slice(-3).reverse().map((scan) => (
-              <Link key={scan.id} href={`/product/${scan.barcode}`}>
-                <Card className="bg-white border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardContent className="p-4 flex items-center">
-                    <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
-                      <span className="text-xs font-medium text-gray-500">IMG</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{scan.productName}</h3>
-                      <p className="text-sm text-gray-500">Best: {scan.bestPrice}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
-                  </CardContent>
-                </Card>
-              </Link>
+              <div key={scan.id} className="relative group">
+                <Link href={`/product/${scan.barcode}`}>
+                  <Card className="bg-white border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <CardContent className="p-4 flex items-center">
+                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
+                        <span className="text-xs font-medium text-gray-500">IMG</span>
+                      </div>
+                      <div className="flex-1 pr-8">
+                        <h3 className="font-medium">{scan.productName}</h3>
+                        <p className="text-sm text-gray-500">Best: {scan.bestPrice}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <QuickShareButton
+                    productName={scan.productName}
+                    barcode={scan.barcode}
+                    bestPrice={scan.bestPrice || undefined}
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 bg-white/80 hover:bg-white border border-gray-200"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </div>
