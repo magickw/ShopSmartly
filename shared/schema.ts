@@ -69,6 +69,7 @@ export const shoppingListItems = pgTable("shopping_list_items", {
   userId: varchar("user_id").references(() => users.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").default(1),
+  unitPrice: varchar("unit_price"), // User-defined price override
   completed: boolean("completed").default(false),
   addedAt: timestamp("added_at").defaultNow(),
 });

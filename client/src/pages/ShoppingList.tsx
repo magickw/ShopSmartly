@@ -19,11 +19,13 @@ export default function ShoppingList() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemBrand, setNewItemBrand] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState(1);
+  const [newItemPrice, setNewItemPrice] = useState("");
   
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editBrand, setEditBrand] = useState("");
   const [editQuantity, setEditQuantity] = useState(1);
+  const [editPrice, setEditPrice] = useState("");
 
   const { data: shoppingList = [], isLoading } = useQuery<ShoppingListItemWithProduct[]>({
     queryKey: ["/api/shopping-list"],
@@ -124,9 +126,15 @@ export default function ShoppingList() {
     });
   };
 
-  const getEstimatedPrice = (product: ProductWithPrices) => {
-    if (product.prices.length === 0) return "N/A";
-    const bestPrice = product.prices.reduce((min, current) => {
+  const getEstimatedPrice = (item: ShoppingListItemWithProduct) => {
+    // Use user-defined unit price if available
+    if (item.unitPrice) {
+      return item.unitPrice;
+    }
+    
+    // Fall back to best available price
+    if (item.product.prices.length === 0) return "N/A";
+    const bestPrice = item.product.prices.reduce((min, current) => {
       const currentPrice = parseFloat(current.price.replace('$', ''));
       const minPrice = parseFloat(min.price.replace('$', ''));
       return currentPrice < minPrice ? current : min;
@@ -138,35 +146,45 @@ export default function ShoppingList() {
     if (!shoppingList) return 0;
     
     return shoppingList.reduce((total: number, item: ShoppingListItemWithProduct) => {
-      if (item.product.prices.length === 0) return total;
+      let priceValue = 0;
       
-      const bestPrice = item.product.prices.reduce((min, current) => {
-        const currentPrice = parseFloat(current.price.replace('$', ''));
-        const minPrice = parseFloat(min.price.replace('$', ''));
-        return currentPrice < minPrice ? current : min;
-      });
+      // Use user-defined unit price if available
+      if (item.unitPrice) {
+        priceValue = parseFloat(item.unitPrice.replace('$', ''));
+      } else if (item.product.prices.length > 0) {
+        // Fall back to best available price
+        const bestPrice = item.product.prices.reduce((min, current) => {
+          const currentPrice = parseFloat(current.price.replace('$', ''));
+          const minPrice = parseFloat(min.price.replace('$', ''));
+          return currentPrice < minPrice ? current : min;
+        });
+        priceValue = parseFloat(bestPrice.price.replace('$', ''));
+      }
       
-      const price = parseFloat(bestPrice.price.replace('$', ''));
       const quantity = item.quantity || 1;
-      
-      return total + (price * quantity);
+      return total + (priceValue * quantity);
     }, 0);
   };
 
   const totalEstimate = calculateTotalEstimate();
   const completedTotal = shoppingList?.filter(item => item.completed).reduce((total: number, item: ShoppingListItemWithProduct) => {
-    if (item.product.prices.length === 0) return total;
+    let priceValue = 0;
     
-    const bestPrice = item.product.prices.reduce((min, current) => {
-      const currentPrice = parseFloat(current.price.replace('$', ''));
-      const minPrice = parseFloat(min.price.replace('$', ''));
-      return currentPrice < minPrice ? current : min;
-    });
+    // Use user-defined unit price if available
+    if (item.unitPrice) {
+      priceValue = parseFloat(item.unitPrice.replace('$', ''));
+    } else if (item.product.prices.length > 0) {
+      // Fall back to best available price
+      const bestPrice = item.product.prices.reduce((min, current) => {
+        const currentPrice = parseFloat(current.price.replace('$', ''));
+        const minPrice = parseFloat(min.price.replace('$', ''));
+        return currentPrice < minPrice ? current : min;
+      });
+      priceValue = parseFloat(bestPrice.price.replace('$', ''));
+    }
     
-    const price = parseFloat(bestPrice.price.replace('$', ''));
     const quantity = item.quantity || 1;
-    
-    return total + (price * quantity);
+    return total + (priceValue * quantity);
   }, 0) || 0;
 
   const remainingTotal = totalEstimate - completedTotal;
