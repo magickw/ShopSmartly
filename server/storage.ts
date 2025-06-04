@@ -259,6 +259,10 @@ export class MemStorage implements IStorage {
     const user: User = {
       ...existingUser,
       ...userData,
+      email: userData.email ?? null,
+      firstName: userData.firstName ?? null,
+      lastName: userData.lastName ?? null,
+      profileImageUrl: userData.profileImageUrl ?? null,
       createdAt: existingUser?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -332,7 +336,13 @@ export class MemStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const newProduct: Product = { id: this.currentProductId++, ...product };
+    const newProduct: Product = { 
+      id: this.currentProductId++, 
+      ...product,
+      brand: product.brand ?? null,
+      description: product.description ?? null,
+      imageUrl: product.imageUrl ?? null,
+    };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
   }
@@ -352,13 +362,22 @@ export class MemStorage implements IStorage {
   }
 
   async createRetailer(retailer: InsertRetailer): Promise<Retailer> {
-    const newRetailer: Retailer = { id: this.currentRetailerId++, ...retailer };
+    const newRetailer: Retailer = { 
+      id: this.currentRetailerId++, 
+      ...retailer,
+      logo: retailer.logo ?? null,
+    };
     this.retailers.set(newRetailer.id, newRetailer);
     return newRetailer;
   }
 
   async createPrice(price: InsertPrice): Promise<Price> {
-    const newPrice: Price = { id: this.currentPriceId++, ...price };
+    const newPrice: Price = { 
+      id: this.currentPriceId++, 
+      ...price,
+      stock: price.stock ?? null,
+      url: price.url ?? null,
+    };
     this.prices.set(newPrice.id, newPrice);
     return newPrice;
   }
@@ -367,6 +386,7 @@ export class MemStorage implements IStorage {
     const newScan: ScanHistory = {
       id: this.currentScanHistoryId++,
       ...scan,
+      bestPrice: scan.bestPrice ?? null,
       scannedAt: new Date()
     };
     this.scanHistoryItems.set(newScan.id, newScan);
@@ -382,6 +402,7 @@ export class MemStorage implements IStorage {
     const newFavorite: Favorite = {
       id: this.currentFavoriteId++,
       ...favorite,
+      userId: favorite.userId ?? null,
       addedAt: new Date()
     };
     this.favoritesItems.set(newFavorite.id, newFavorite);
@@ -426,6 +447,9 @@ export class MemStorage implements IStorage {
     const newItem: ShoppingListItem = {
       id: this.currentShoppingListId++,
       ...item,
+      userId: item.userId ?? null,
+      quantity: item.quantity ?? null,
+      completed: item.completed ?? null,
       addedAt: new Date()
     };
     this.shoppingListItemsMap.set(newItem.id, newItem);
