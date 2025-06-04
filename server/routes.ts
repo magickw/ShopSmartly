@@ -15,6 +15,10 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Simple in-memory scan tracking
+let dailyScanCount = 0;
+const DAILY_SCAN_LIMIT = 10;
+
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
@@ -109,6 +113,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Barcode is required" });
       }
 
+      // Check scan limit
+      if (dailyScanCount >= DAILY_SCAN_LIMIT) {
+        return res.status(429).json({ 
+          message: "Daily scan limit reached",
+          upgradeRequired: true,
+          scansRemaining: 0
+        });
+      }
+
       let product = await storage.getProductByBarcode(barcode);
       
       if (!product) {
@@ -179,6 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         barcode,
         productName: product.name
       });
+
+      // Increment scan count for daily limit tracking
+      dailyScanCount++;
 
       let bestPrice = "N/A";
       if (product.prices && product.prices.length > 0) {
@@ -315,15 +331,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subscription status (mock response)
+  // Subscription status with real scan count tracking
   app.get("/api/subscription/status", async (req: any, res) => {
     try {
+      const scansRemaining = Math.max(0, DAILY_SCAN_LIMIT - dailyScanCount);
+      const canScan = scansRemaining > 0;
+      
       res.json({
         tier: "free",
         expiresAt: null,
         scanLimits: {
-          canScan: true,
-          scansRemaining: 5,
+          canScan,
+          scansRemaining,
           resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
       });
