@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Clock, Target, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Clock, Target, BarChart3, Leaf } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import EcoAnalyticsDashboard from "@/components/EcoAnalyticsDashboard";
 import type { ScanHistory, ProductWithPrices, ShoppingListItem } from "@shared/schema";
 
 interface AnalyticsData {
@@ -109,8 +111,17 @@ export default function Analytics() {
           ))}
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* Analytics Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="overview">Shopping Analytics</TabsTrigger>
+            <TabsTrigger value="environmental">Environmental Impact</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-6 mt-6">
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -288,6 +299,12 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+            </TabsContent>
+
+            <TabsContent value="environmental" className="space-y-6 mt-6">
+              <EcoAnalyticsDashboard />
+            </TabsContent>
+          </Tabs>
       </div>
     </div>
   );

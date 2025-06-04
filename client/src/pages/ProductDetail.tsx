@@ -156,6 +156,39 @@ export default function ProductDetail() {
         {/* Eco-Friendly Comparison */}
         <EcoFriendlyComparison product={product} className="mb-6" />
 
+        {/* Eco-Friendly Actions */}
+        {(product.ecoScore || product.isEcoFriendly || product.sustainabilityCertifications?.length) && (
+          <Card className="mb-6 bg-green-50 border-green-200">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                <Leaf className="h-4 w-4" />
+                Environmental Impact Actions
+              </h3>
+              <div className="space-y-2 text-sm text-green-700 mb-4">
+                <p>• Compare with similar eco-friendly products</p>
+                {product.recyclingInfo && (
+                  <p>• Recyclable - check local recycling guidelines</p>
+                )}
+                {product.carbonFootprint && (
+                  <p>• Carbon footprint: {product.carbonFootprint}</p>
+                )}
+                {product.sustainabilityCertifications && product.sustainabilityCertifications.length > 0 && (
+                  <p>• {product.sustainabilityCertifications.length} sustainability certification(s)</p>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-green-300 text-green-700 hover:bg-green-100"
+                onClick={() => setLocation("/eco-comparison")}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Compare Eco Products
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
