@@ -135,9 +135,9 @@ export default function ShoppingList() {
   };
 
   const calculateTotalEstimate = () => {
-    if (!shoppingListItems) return 0;
+    if (!shoppingList) return 0;
     
-    return shoppingListItems.reduce((total, item) => {
+    return shoppingList.reduce((total: number, item: ShoppingListItemWithProduct) => {
       if (item.product.prices.length === 0) return total;
       
       const bestPrice = item.product.prices.reduce((min, current) => {
@@ -154,7 +154,7 @@ export default function ShoppingList() {
   };
 
   const totalEstimate = calculateTotalEstimate();
-  const completedTotal = shoppingListItems?.filter(item => item.completed).reduce((total, item) => {
+  const completedTotal = shoppingList?.filter(item => item.completed).reduce((total: number, item: ShoppingListItemWithProduct) => {
     if (item.product.prices.length === 0) return total;
     
     const bestPrice = item.product.prices.reduce((min, current) => {
@@ -297,6 +297,39 @@ export default function ShoppingList() {
           )}
         </div>
       </div>
+
+      {/* Budget Summary */}
+      {shoppingList.length > 0 && (
+        <Card className="mt-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">Budget Estimate</h3>
+                <p className="text-sm text-gray-600">Based on best available prices</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">
+                  ${totalEstimate.toFixed(2)}
+                </div>
+                {completedTotal > 0 && (
+                  <div className="text-sm text-gray-500">
+                    <div>Completed: ${completedTotal.toFixed(2)}</div>
+                    <div>Remaining: ${remainingTotal.toFixed(2)}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-gray-600">
+                {shoppingList.length} item{shoppingList.length !== 1 ? 's' : ''}
+              </span>
+              <span className="text-gray-600">
+                {shoppingList.filter(item => item.completed).length} completed
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mt-6">
         {shoppingList.length === 0 ? (
