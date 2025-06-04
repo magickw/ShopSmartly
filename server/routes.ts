@@ -17,6 +17,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Product update endpoint
+  app.patch("/api/products/:id", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const updates = insertProductSchema.partial().parse(req.body);
+      const product = await storage.updateProduct(productId, updates);
+      res.json(product);
+    } catch (error) {
+      console.error("Update product error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Barcode scanning endpoint
   app.post("/api/scan", async (req, res) => {
     try {

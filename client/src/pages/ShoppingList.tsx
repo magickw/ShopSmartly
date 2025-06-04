@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, X } from "lucide-react";
+import { Plus, Edit3, Trash2, Check, X } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ShoppingListItem, ProductWithPrices, InsertProduct } from "@shared/schema";
@@ -19,6 +19,11 @@ export default function ShoppingList() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemBrand, setNewItemBrand] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState(1);
+  
+  const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editQuantity, setEditQuantity] = useState(1);
 
   const { data: shoppingList = [], isLoading } = useQuery<ShoppingListItemWithProduct[]>({
     queryKey: ["/api/shopping-list"],
@@ -95,6 +100,20 @@ export default function ShoppingList() {
     },
     onError: () => {
       toast({ title: "Failed to add item", variant: "destructive" });
+    },
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ productId, updates }: { productId: number; updates: Partial<InsertProduct> }) => {
+      return apiRequest("PATCH", `/api/products/${productId}`, updates);
+    },
+    onSuccess: () => {
+      toast({ title: "Item updated!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/shopping-list"] });
+      setEditingItem(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update item", variant: "destructive" });
     },
   });
 

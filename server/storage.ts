@@ -26,6 +26,7 @@ export interface IStorage {
   // Products
   getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product>;
   
   // Retailers
   getAllRetailers(): Promise<Retailer[]>;
@@ -81,6 +82,15 @@ export class DatabaseStorage implements IStorage {
       .values(product)
       .returning();
     return newProduct;
+  }
+
+  async updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set(updates)
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
   }
 
   async getAllRetailers(): Promise<Retailer[]> {
@@ -279,6 +289,16 @@ export class MemStorage implements IStorage {
     const newProduct: Product = { id: this.currentProductId++, ...product };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
+  }
+
+  async updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product> {
+    const existingProduct = this.products.get(id);
+    if (!existingProduct) {
+      throw new Error(`Product with id ${id} not found`);
+    }
+    const updatedProduct: Product = { ...existingProduct, ...updates };
+    this.products.set(id, updatedProduct);
+    return updatedProduct;
   }
 
   async getAllRetailers(): Promise<Retailer[]> {
