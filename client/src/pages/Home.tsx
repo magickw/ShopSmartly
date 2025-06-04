@@ -257,7 +257,7 @@ export default function Home() {
             <CardContent>
               {recentScans.length > 0 ? (
                 <div className="space-y-2">
-                  {recentScans.slice(0, 3).map((scan) => (
+                  {recentScans.slice(-3).reverse().map((scan) => (
                     <div key={scan.id} className="relative group">
                       <Link href={`/product/${scan.barcode}`}>
                         <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
@@ -316,7 +316,7 @@ export default function Home() {
 
         {/* Developer Attribution */}
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Developed by{" "}
             <a 
               href="https://github.com/magickw" 

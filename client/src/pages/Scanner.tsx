@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -122,21 +122,32 @@ export default function Scanner() {
       {/* Recent Scans */}
       {recentScans.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold mb-4">Recent Scans</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Recent Scans</h2>
+            {recentScans.length > 3 && (
+              <Link href="/history">
+                <span className="text-sm text-blue-600 hover:underline">
+                  View all ({recentScans.length})
+                </span>
+              </Link>
+            )}
+          </div>
           <div className="space-y-3">
-            {recentScans.slice(0, 1).map((scan) => (
-              <Card key={scan.id} className="bg-ios-light-gray border-0 cursor-pointer hover:bg-gray-100 transition-colors">
-                <CardContent className="p-4 flex items-center">
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
-                    <span className="text-xs font-medium text-gray-500">IMG</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium">{scan.productName}</h3>
-                    <p className="text-sm text-ios-gray">Best: {scan.bestPrice}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-ios-gray" />
-                </CardContent>
-              </Card>
+            {recentScans.slice(-3).reverse().map((scan) => (
+              <Link key={scan.id} href={`/product/${scan.barcode}`}>
+                <Card className="bg-white border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardContent className="p-4 flex items-center">
+                    <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
+                      <span className="text-xs font-medium text-gray-500">IMG</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{scan.productName}</h3>
+                      <p className="text-sm text-gray-500">Best: {scan.bestPrice}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>

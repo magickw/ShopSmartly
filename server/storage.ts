@@ -406,63 +406,7 @@ export class MemStorage implements IStorage {
     this.retailers.set(walmartRetailer.id, walmartRetailer);
     this.retailers.set(amazonRetailer.id, amazonRetailer);
 
-    // Seed sample products
-    const sampleProducts = [
-      {
-        barcode: "123456789012",
-        name: "iPhone 15 Pro Max",
-        brand: "Apple",
-        description: "Latest flagship smartphone with A17 Pro chip, titanium design, and pro camera system",
-        imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        ecoScore: 72,
-        carbonFootprint: "70kg CO2e",
-        recyclingInfo: "Device can be recycled through Apple's trade-in program. Remove personal data before recycling.",
-        sustainabilityCertifications: ["Energy Star", "EPEAT Gold"],
-        packagingType: "Recyclable",
-        isEcoFriendly: true
-      },
-      {
-        barcode: "789012345678",
-        name: "Coca-Cola Classic",
-        brand: "Coca-Cola",
-        description: "Classic cola soft drink",
-        imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
-        ecoScore: 45,
-        carbonFootprint: "0.33kg CO2e",
-        recyclingInfo: "Aluminum can is 100% recyclable. Please rinse before recycling.",
-        sustainabilityCertifications: ["Rainforest Alliance"],
-        packagingType: "Recyclable",
-        isEcoFriendly: false
-      }
-    ];
-
-    sampleProducts.forEach(productData => {
-      const product: Product = { 
-        id: this.currentProductId++, 
-        ...productData,
-        ecoScore: productData.ecoScore || null,
-        carbonFootprint: productData.carbonFootprint || null,
-        recyclingInfo: productData.recyclingInfo || null,
-        sustainabilityCertifications: productData.sustainabilityCertifications || null,
-        packagingType: productData.packagingType || null,
-        isEcoFriendly: productData.isEcoFriendly || null
-      };
-      this.products.set(product.id, product);
-
-      // Add prices for each retailer
-      const basePrices = product.barcode === "123456789012" ? [1199.99, 1249.99, 1199.00] : [1.99, 2.29, 1.89];
-      [targetRetailer.id, walmartRetailer.id, amazonRetailer.id].forEach((retailerId, index) => {
-        const price: Price = {
-          id: this.currentPriceId++,
-          productId: product.id,
-          retailerId,
-          price: `$${basePrices[index]}`,
-          stock: index === 0 ? "In Stock" : index === 1 ? "Limited Stock" : "Prime Shipping",
-          url: `https://example.com/product/${product.id}`
-        };
-        this.prices.set(price.id, price);
-      });
-    });
+    // No seed products - only use real data from barcode scanning
   }
 
   async getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined> {
