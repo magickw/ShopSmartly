@@ -9,6 +9,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import EcoFriendlyComparison from "@/components/EcoFriendlyComparison";
 import MerchantPriceComparison from "@/components/MerchantPriceComparison";
+import QuickShareButton from "@/components/QuickShareButton";
 import type { ScanResult } from "@shared/schema";
 
 export default function ProductDetail() {
@@ -250,94 +251,14 @@ export default function ProductDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">Product Details</h1>
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleShare}
+        {scanResult?.product && (
+          <QuickShareButton
+            productName={scanResult.product.name}
+            barcode={scanResult.product.barcode}
+            bestPrice={scanResult.bestPrice}
             className="text-blue-600 mr-2"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
-          
-          {showShareMenu && (
-            <div ref={shareMenuRef} className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50 min-w-[280px]">
-              <h3 className="font-semibold text-sm mb-3">Share Product</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNativeShare}
-                  className="flex items-center gap-2 justify-start"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy Link
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('whatsapp')}
-                  className="flex items-center gap-2 justify-start text-green-600"
-                >
-                  <SiWhatsapp className="h-4 w-4" />
-                  WhatsApp
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('facebook')}
-                  className="flex items-center gap-2 justify-start text-blue-600"
-                >
-                  <SiFacebook className="h-4 w-4" />
-                  Facebook
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('twitter')}
-                  className="flex items-center gap-2 justify-start text-blue-400"
-                >
-                  <SiX className="h-4 w-4" />
-                  X (Twitter)
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('telegram')}
-                  className="flex items-center gap-2 justify-start text-blue-500"
-                >
-                  <SiTelegram className="h-4 w-4" />
-                  Telegram
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('sms')}
-                  className="flex items-center gap-2 justify-start text-green-500"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  SMS
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSocialShare('email')}
-                  className="flex items-center gap-2 justify-start text-gray-600"
-                  style={{ gridColumn: 'span 2' }}
-                >
-                  <Mail className="h-4 w-4" />
-                  Email
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+          />
+        )}
         <Button
           variant="ghost"
           size="icon"

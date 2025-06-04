@@ -7,6 +7,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import BannerAd from "@/components/BannerAd";
 import ScanLimitBanner from "@/components/ScanLimitBanner";
+import QuickShareButton from "@/components/QuickShareButton";
 import { useToast } from "@/hooks/use-toast";
 
 interface Advertisement {
@@ -269,14 +270,16 @@ export default function Home() {
                           <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{scan.barcode}</p>
                         </div>
                       </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleShareScan(scan, e)}
-                      >
-                        <Share2 className="h-3 w-3" />
-                      </Button>
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <QuickShareButton
+                          productName={scan.productName}
+                          barcode={scan.barcode}
+                          bestPrice={scan.bestPrice}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                        />
+                      </div>
                     </div>
                   ))}
                   {recentScans.length > 1 && (
