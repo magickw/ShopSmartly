@@ -3,26 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth routes for Google and Apple login
+  // Temporary auth endpoint that returns null (no authentication for now)
   app.get('/api/auth/user', async (req, res) => {
-    // For now, return null to show landing page
-    // Will implement Google/Apple OAuth when secrets are provided
     res.json(null);
-  });
-
-  // Google OAuth login endpoint
-  app.get('/api/auth/google', async (req, res) => {
-    res.status(501).json({ message: "Google OAuth not configured. Please provide GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET." });
-  });
-
-  // Apple OAuth login endpoint  
-  app.get('/api/auth/apple', async (req, res) => {
-    res.status(501).json({ message: "Apple OAuth not configured. Please provide APPLE_CLIENT_ID and APPLE_CLIENT_SECRET." });
-  });
-
-  // Logout endpoint
-  app.post('/api/auth/logout', async (req, res) => {
-    res.json({ message: "Logged out successfully" });
   });
   
   // Product creation endpoint

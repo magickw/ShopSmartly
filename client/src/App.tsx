@@ -17,23 +17,15 @@ import BottomNavigation from "@/components/BottomNavigation";
 import StatusBar from "@/components/StatusBar";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/scanner" component={Scanner} />
-          <Route path="/product/:barcode" component={ProductDetail} />
-          <Route path="/favorites" component={Favorites} />
-          <Route path="/shopping-list" component={ShoppingList} />
-          <Route path="/history" component={History} />
-          <Route path="/qr-generator" component={QRGenerator} />
-        </>
-      )}
+      <Route path="/" component={Scanner} />
+      <Route path="/scanner" component={Scanner} />
+      <Route path="/product/:barcode" component={ProductDetail} />
+      <Route path="/favorites" component={Favorites} />
+      <Route path="/shopping-list" component={ShoppingList} />
+      <Route path="/history" component={History} />
+      <Route path="/qr-generator" component={QRGenerator} />
       <Route component={NotFound} />
     </Switch>
   );
