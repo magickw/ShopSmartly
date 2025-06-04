@@ -102,6 +102,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Add to scan history when accessing existing product
+      await storage.addScanHistory({
+        barcode,
+        productName: product.name
+      });
+
       res.json({
         product,
         bestPrice
