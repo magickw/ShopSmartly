@@ -51,9 +51,9 @@ export async function fetchFromUPCItemDB(barcode: string): Promise<BarcodeApiRes
           if (offer.merchant && offer.price) {
             prices.push({
               retailer: offer.merchant,
-              price: `$${(offer.price / 100).toFixed(2)}`,
+              price: `$${parseFloat(offer.price).toFixed(2)}`,
               currency: offer.currency || 'USD',
-              availability: offer.availability || 'Check availability',
+              availability: offer.availability || offer.condition || 'Check availability',
               url: offer.link
             });
           }
