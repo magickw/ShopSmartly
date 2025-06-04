@@ -1,16 +1,24 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, X } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { ShoppingListItem, ProductWithPrices } from "@shared/schema";
+import type { ShoppingListItem, ProductWithPrices, InsertProduct } from "@shared/schema";
 
 type ShoppingListItemWithProduct = ShoppingListItem & { product: ProductWithPrices };
 
 export default function ShoppingList() {
   const { toast } = useToast();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemBrand, setNewItemBrand] = useState("");
+  const [newItemQuantity, setNewItemQuantity] = useState(1);
 
   const { data: shoppingList = [], isLoading } = useQuery<ShoppingListItemWithProduct[]>({
     queryKey: ["/api/shopping-list"],
@@ -59,6 +67,37 @@ export default function ShoppingList() {
     },
   });
 
+  const addNewItemMutation = useMutation({
+    mutationFn: async () => {
+      // First create a product
+      const productResponse = await apiRequest("POST", "/api/products", {
+        barcode: `manual-${Date.now()}`, // Generate unique barcode for manual items
+        name: newItemName,
+        brand: newItemBrand || null,
+        description: "Manually added item",
+        imageUrl: null,
+      });
+      const product = await productResponse.json();
+
+      // Then add to shopping list
+      return apiRequest("POST", "/api/shopping-list", {
+        productId: product.id,
+        quantity: newItemQuantity,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Item added to shopping list!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/shopping-list"] });
+      setShowAddDialog(false);
+      setNewItemName("");
+      setNewItemBrand("");
+      setNewItemQuantity(1);
+    },
+    onError: () => {
+      toast({ title: "Failed to add item", variant: "destructive" });
+    },
+  });
+
   const handleToggleCompleted = (item: ShoppingListItemWithProduct) => {
     updateItemMutation.mutate({
       id: item.id,
@@ -92,17 +131,84 @@ export default function ShoppingList() {
     <div className="px-4">
       <div className="flex items-center justify-between py-3 border-b border-gray-100">
         <h1 className="text-2xl font-bold">Shopping List</h1>
-        {shoppingList.some(item => item.completed) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => clearCompletedMutation.mutate()}
-            disabled={clearCompletedMutation.isPending}
-            className="text-ios-blue"
-          >
-            Clear
-          </Button>
-        )}
+        <div className="flex items-center space-x-2">
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-ios-blue"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm mx-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Item</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="item-name">Item Name *</Label>
+                  <Input
+                    id="item-name"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    placeholder="e.g., Milk, Bread, Apples"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="item-brand">Brand (Optional)</Label>
+                  <Input
+                    id="item-brand"
+                    value={newItemBrand}
+                    onChange={(e) => setNewItemBrand(e.target.value)}
+                    placeholder="e.g., Organic Valley"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="item-quantity">Quantity</Label>
+                  <Input
+                    id="item-quantity"
+                    type="number"
+                    min="1"
+                    value={newItemQuantity}
+                    onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex space-x-2 pt-4">
+                  <Button
+                    onClick={() => setShowAddDialog(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => addNewItemMutation.mutate()}
+                    disabled={!newItemName.trim() || addNewItemMutation.isPending}
+                    className="flex-1 bg-ios-blue hover:bg-ios-blue/90"
+                  >
+                    Add Item
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          {shoppingList.some(item => item.completed) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => clearCompletedMutation.mutate()}
+              disabled={clearCompletedMutation.isPending}
+              className="text-ios-blue"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mt-6">
@@ -119,7 +225,7 @@ export default function ShoppingList() {
               <Card key={item.id} className="bg-white border border-gray-100">
                 <CardContent className="p-4 flex items-center">
                   <Checkbox
-                    checked={item.completed}
+                    checked={!!item.completed}
                     onCheckedChange={() => handleToggleCompleted(item)}
                     className="mr-4 h-5 w-5"
                   />

@@ -1,10 +1,22 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema } from "@shared/schema";
+import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Product creation endpoint
+  app.post("/api/products", async (req, res) => {
+    try {
+      const productData = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(productData);
+      res.json(product);
+    } catch (error) {
+      console.error("Create product error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Barcode scanning endpoint
   app.post("/api/scan", async (req, res) => {
     try {
