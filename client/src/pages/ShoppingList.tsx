@@ -134,6 +134,37 @@ export default function ShoppingList() {
     return bestPrice.price;
   };
 
+  const startEditing = (item: ShoppingListItemWithProduct) => {
+    setEditingItem(item.id);
+    setEditName(item.product.name);
+    setEditBrand(item.product.brand || "");
+    setEditQuantity(item.quantity || 1);
+  };
+
+  const saveEdit = (item: ShoppingListItemWithProduct) => {
+    updateProductMutation.mutate({
+      productId: item.product.id,
+      updates: {
+        name: editName,
+        brand: editBrand || null,
+      },
+    });
+    
+    if (editQuantity !== item.quantity) {
+      updateItemMutation.mutate({
+        id: item.id,
+        updates: { quantity: editQuantity },
+      });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+    setEditName("");
+    setEditBrand("");
+    setEditQuantity(1);
+  };
+
   if (isLoading) {
     return (
       <div className="px-4 py-6">
@@ -242,23 +273,95 @@ export default function ShoppingList() {
           <div className="space-y-3">
             {shoppingList.map((item) => (
               <Card key={item.id} className="bg-white border border-gray-100">
-                <CardContent className="p-4 flex items-center">
-                  <Checkbox
-                    checked={!!item.completed}
-                    onCheckedChange={() => handleToggleCompleted(item)}
-                    className="mr-4 h-5 w-5"
-                  />
-                  <div className="flex-1">
-                    <h3 className={`font-medium ${item.completed ? 'line-through text-gray-500' : ''}`}>
-                      {item.product.name}
-                    </h3>
-                    <p className="text-sm text-ios-gray">
-                      Est. {getEstimatedPrice(item.product)}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-ios-light-gray px-2 py-1 rounded-full">
-                    {item.quantity}x
-                  </span>
+                <CardContent className="p-4">
+                  {editingItem === item.id ? (
+                    <div className="space-y-3">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Item name"
+                        className="text-sm"
+                      />
+                      <Input
+                        value={editBrand}
+                        onChange={(e) => setEditBrand(e.target.value)}
+                        placeholder="Brand (optional)"
+                        className="text-sm"
+                      />
+                      <Input
+                        type="number"
+                        min="1"
+                        value={editQuantity}
+                        onChange={(e) => setEditQuantity(parseInt(e.target.value) || 1)}
+                        className="text-sm"
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={() => saveEdit(item)}
+                          disabled={!editName.trim() || updateProductMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={cancelEdit}
+                          className="text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center mb-3">
+                        <Checkbox
+                          checked={!!item.completed}
+                          onCheckedChange={() => handleToggleCompleted(item)}
+                          className="mr-4 h-5 w-5"
+                        />
+                        <div className="flex-1">
+                          <h3 className={`font-medium ${item.completed ? 'line-through text-gray-500' : ''}`}>
+                            {item.product.name}
+                          </h3>
+                          {item.product.brand && (
+                            <p className={`text-sm text-gray-600 ${item.completed ? 'line-through' : ''}`}>
+                              {item.product.brand}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs bg-ios-light-gray px-2 py-1 rounded-full mr-2">
+                          {item.quantity}x
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-green-600">
+                          Est. {getEstimatedPrice(item.product)}
+                        </span>
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditing(item)}
+                            className="text-ios-blue hover:text-ios-blue/80 h-8 w-8 p-0"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItemMutation.mutate(item.id)}
+                            disabled={removeItemMutation.isPending}
+                            className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}
