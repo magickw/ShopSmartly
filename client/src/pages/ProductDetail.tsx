@@ -15,9 +15,9 @@ export default function ProductDetail() {
   const { toast } = useToast();
 
   const { data: scanResult, isLoading } = useQuery<ScanResult>({
-    queryKey: [`/api/scan`, params.barcode],
+    queryKey: [`/api/products`, params.barcode],
     queryFn: async () => {
-      const response = await apiRequest("POST", "/api/scan", { barcode: params.barcode });
+      const response = await apiRequest("GET", `/api/products/${params.barcode}`);
       return response.json();
     },
     enabled: !!params.barcode,

@@ -68,6 +68,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get existing product data without triggering new scan
+  app.get("/api/products/:barcode", async (req, res) => {
+    try {
+      const { barcode } = req.params;
+      
+      if (!barcode) {
+        return res.status(400).json({ message: "Barcode is required" });
+      }
+
+      // Get existing product from database
+      const product = await storage.getProductByBarcode(barcode);
+      
+      if (!product) {
+        return res.status(404).json({ 
+          message: "Product not found",
+          suggestion: "Scan this barcode first to add it to the database"
+        });
+      }
+
+      // Find best price
+      let bestPrice = "N/A";
+      if (product.prices && product.prices.length > 0) {
+        const bestPriceInfo = findBestPrice(product.prices.map(p => ({
+          retailer: p.retailer.name,
+          price: p.price,
+          currency: "USD",
+          availability: p.stock || "Available"
+        })));
+        
+        if (bestPriceInfo) {
+          bestPrice = bestPriceInfo.price;
+        }
+      }
+
+      res.json({
+        product,
+        bestPrice
+      });
+    } catch (error) {
+      console.error("Get product error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Barcode scanning endpoint with UPC Item DB pricing
   app.post("/api/scan", async (req, res) => {
     try {
