@@ -20,7 +20,7 @@ async function generateShoppingAssistantResponse(message: string): Promise<strin
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -48,38 +48,27 @@ async function generateShoppingAssistantResponse(message: string): Promise<strin
     return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. How can I assist you today?";
   }
 }
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Temporary auth endpoint that returns null (no authentication for now)
-  app.get('/api/auth/user', async (req, res) => {
-    res.json(null);
-  });
-  
-  // Product creation endpoint
-  app.post("/api/products", async (req, res) => {
+
+  // Chat assistant endpoint  
+  app.post("/api/chat", async (req, res) => {
     try {
-      const productData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(productData);
-      res.json(product);
+      const { message } = req.body;
+      if (!message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const response = await generateShoppingAssistantResponse(message);
+
+      res.json({ response });
     } catch (error) {
-      console.error("Create product error:", error);
+      console.error("Chat error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Product update endpoint
-  app.patch("/api/products/:id", async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      const updates = insertProductSchema.partial().parse(req.body);
-      const product = await storage.updateProduct(productId, updates);
-      res.json(product);
-    } catch (error) {
-      console.error("Update product error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Barcode scanning endpoint with authentic API integration
+  // Barcode scanning endpoint with UPC Item DB pricing
   app.post("/api/scan", async (req, res) => {
     try {
       const { barcode } = req.body;
@@ -88,105 +77,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Barcode is required" });
       }
 
-      // First check if product exists in our database
+      // Always fetch fresh data from UPC Item DB
+      console.log(`Fetching product data from APIs for barcode: ${barcode}`);
+      const apiResult = await fetchProductData(barcode);
+      
+      // Check if product exists in our database
       let product = await storage.getProductByBarcode(barcode);
       
-      if (!product) {
-        // Fetch product data from UPC database
-        console.log(`Fetching product data from APIs for barcode: ${barcode}`);
-        const apiResult = await fetchProductData(barcode);
-        
-        if (apiResult.product) {
-          // Create product in our database with API data
-          const productData = {
-            barcode,
-            name: apiResult.product.name,
-            brand: apiResult.product.brand || null,
-            description: apiResult.product.description || null,
-            imageUrl: apiResult.product.imageUrl || null,
-            ecoScore: null,
-            carbonFootprint: null,
-            recyclingInfo: null,
-            sustainabilityCertifications: null,
-            packagingType: null,
-            isEcoFriendly: null
-          };
+      if (!product && apiResult.product) {
+        // Create new product
+        const productData = {
+          barcode,
+          name: apiResult.product.name,
+          brand: apiResult.product.brand || null,
+          description: apiResult.product.description || null,
+          imageUrl: apiResult.product.imageUrl || null,
+          ecoScore: null,
+          carbonFootprint: null,
+          recyclingInfo: null,
+          sustainabilityCertifications: null,
+          packagingType: null,
+          isEcoFriendly: null
+        };
 
-          const createdProduct = await storage.createProduct(productData);
+        const createdProduct = await storage.createProduct(productData);
+        product = { ...createdProduct, prices: [] };
+      }
+
+      // Update pricing data from UPC Item DB
+      if (product && apiResult.prices && apiResult.prices.length > 0) {
+        console.log(`Found ${apiResult.prices.length} merchant offers from UPC Item DB`);
+        for (const priceInfo of apiResult.prices) {
+          console.log(`Creating price entry for ${priceInfo.retailer}: ${priceInfo.price}`);
           
-          // Create retailers and prices from UPC Item DB offers
-          console.log(`Found ${apiResult.prices?.length || 0} merchant offers from UPC Item DB`);
-          for (const priceInfo of apiResult.prices || []) {
-            console.log(`Creating price entry for ${priceInfo.retailer}: ${priceInfo.price}`);
-            // Get or create retailer
-            let retailers = await storage.getAllRetailers();
-            let retailer = retailers.find(r => r.name === priceInfo.retailer);
-            
-            if (!retailer) {
-              retailer = await storage.createRetailer({
-                name: priceInfo.retailer,
-                logo: priceInfo.retailer.charAt(0)
-              });
-              console.log(`Created new retailer: ${retailer.name}`);
-            }
-
-            // Create price entry
-            await storage.createPrice({
-              productId: createdProduct.id,
-              retailerId: retailer.id,
-              price: priceInfo.price,
-              stock: priceInfo.availability,
-              url: priceInfo.url || null
+          // Get or create retailer
+          let retailers = await storage.getAllRetailers();
+          let retailer = retailers.find(r => r.name === priceInfo.retailer);
+          
+          if (!retailer) {
+            retailer = await storage.createRetailer({
+              name: priceInfo.retailer,
+              logo: priceInfo.retailer.charAt(0)
             });
+            console.log(`Created new retailer: ${retailer.name}`);
           }
 
-          // Also try to fetch additional pricing from merchant APIs if available
-          if (apiResult.prices && apiResult.prices.length === 0) {
-            console.log(`Fetching additional pricing data from merchant APIs for: ${apiResult.product.name}`);
-            const pricingResult = await getAllMerchantPrices(barcode, apiResult.product.name);
-            
-            for (const merchantPrice of pricingResult.prices) {
-              // Get or create retailer
-              let retailers = await storage.getAllRetailers();
-              let retailer = retailers.find(r => r.name === merchantPrice.merchant);
-              
-              if (!retailer) {
-                retailer = await storage.createRetailer({
-                  name: merchantPrice.merchant,
-                  logo: merchantPrice.merchant.charAt(0)
-                });
-              }
-
-              // Create price entry
-              await storage.createPrice({
-                productId: createdProduct.id,
-                retailerId: retailer.id,
-                price: `$${merchantPrice.price.toFixed(2)}`,
-                stock: merchantPrice.availability === 'in_stock' ? 'In Stock' : 
-                       merchantPrice.availability === 'out_of_stock' ? 'Out of Stock' : 'Check Availability',
-                url: merchantPrice.url || null
-              });
-            }
-          }
-
-          // Fetch the complete product with prices
-          product = await storage.getProductByBarcode(barcode);
-        }
-        
-        if (!product) {
-          return res.status(404).json({ 
-            message: "Product not found in any database",
-            sources: apiResult.sources || [],
-            suggestion: "This product may not be in our supported databases. Try scanning a different product or check if the barcode is clear and readable.",
-            availableApis: [
-              "UPC Database (free tier)",
-              "Open Food Facts (food products)",
-              "Barcode Spider (requires API key)",
-              "Walmart API (requires API key)",
-              "Target API (public endpoints)"
-            ]
+          // Create price entry
+          await storage.createPrice({
+            productId: product.id,
+            retailerId: retailer.id,
+            price: priceInfo.price,
+            stock: priceInfo.availability,
+            url: priceInfo.url || null
           });
         }
+
+        // Fetch the updated product with all prices
+        product = await storage.getProductByBarcode(barcode);
+      }
+        
+      if (!product) {
+        return res.status(404).json({ 
+          message: "Product not found in any database",
+          suggestion: "This product may not be in our supported databases. Try scanning a different product or check if the barcode is clear and readable."
+        });
       }
 
       // Find best price
@@ -207,19 +161,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add to scan history
       await storage.addScanHistory({
         barcode,
-        productName: product.name,
-        bestPrice: bestPrice
+        productName: product.name
       });
 
       res.json({
         product,
-        bestPrice: bestPrice,
-        savings: product.prices.length > 1 ? calculateSavings(product.prices.map(p => ({
-          retailer: p.retailer.name,
-          price: p.price,
-          currency: "USD",
-          availability: p.stock || "Available"
-        }))) : 0
+        bestPrice
       });
     } catch (error) {
       console.error("Scan error:", error);
@@ -310,10 +257,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/history", async (req, res) => {
     try {
       await storage.clearScanHistory();
-      res.json({ success: true });
+      res.json({ message: "History cleared successfully" });
     } catch (error) {
-      console.error("Clear scan history error:", error);
-      res.status(500).json({ message: "Failed to clear scan history" });
+      console.error("Clear history error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -330,8 +277,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/favorites", async (req, res) => {
     try {
-      const favoriteData = insertFavoriteSchema.parse(req.body);
-      const favorite = await storage.addFavorite(favoriteData);
+      const validation = insertFavoriteSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid favorite data", errors: validation.error.errors });
+      }
+
+      const favorite = await storage.addFavorite(validation.data);
       res.json(favorite);
     } catch (error) {
       console.error("Add favorite error:", error);
@@ -343,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productId = parseInt(req.params.productId);
       await storage.removeFavorite(productId);
-      res.json({ success: true });
+      res.json({ message: "Favorite removed successfully" });
     } catch (error) {
       console.error("Remove favorite error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -363,8 +314,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/shopping-list", async (req, res) => {
     try {
-      const itemData = insertShoppingListItemSchema.parse(req.body);
-      const item = await storage.addShoppingListItem(itemData);
+      const validation = insertShoppingListItemSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid shopping list item data", errors: validation.error.errors });
+      }
+
+      const item = await storage.addShoppingListItem(validation.data);
       res.json(item);
     } catch (error) {
       console.error("Add shopping list item error:", error);
@@ -375,8 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/shopping-list/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = req.body;
-      const item = await storage.updateShoppingListItem(id, updates);
+      const item = await storage.updateShoppingListItem(id, req.body);
       res.json(item);
     } catch (error) {
       console.error("Update shopping list item error:", error);
@@ -388,97 +342,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       await storage.removeShoppingListItem(id);
-      res.json({ success: true });
+      res.json({ message: "Shopping list item removed successfully" });
     } catch (error) {
       console.error("Remove shopping list item error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Chat API routes
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const { message, userId = "anonymous" } = req.body;
-      
-      // Save user message
-      await storage.addChatMessage({
-        userId,
-        message,
-        isUser: true,
-        response: null,
-      });
-
-      // Generate AI response using Perplexity API
-      const response = await generateShoppingAssistantResponse(message);
-      
-      // Save assistant response
-      await storage.addChatMessage({
-        userId,
-        message: response,
-        isUser: false,
-        response: null,
-      });
-
-      res.json({ response });
-    } catch (error) {
-      console.error("Error processing chat message:", error);
-      res.status(500).json({ message: "Failed to process chat message" });
-    }
-  });
-
-  app.get("/api/chat/:userId", async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const history = await storage.getChatHistory(userId);
-      res.json(history);
-    } catch (error) {
-      console.error("Error fetching chat history:", error);
-      res.status(500).json({ message: "Failed to fetch chat history" });
-    }
-  });
-
-  app.delete("/api/chat/:userId", async (req, res) => {
-    try {
-      const { userId } = req.params;
-      await storage.clearChatHistory(userId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error clearing chat history:", error);
-      res.status(500).json({ message: "Failed to clear chat history" });
-    }
-  });
-
-  // Advertisement routes
+  // Advertisement endpoints
   app.get("/api/ads/:placement", async (req, res) => {
     try {
       const { placement } = req.params;
       const ads = await storage.getActiveAds(placement);
-      
-      // Increment impressions for all returned ads
-      for (const ad of ads) {
-        await storage.incrementAdImpressions(ad.id);
-      }
-      
       res.json(ads);
     } catch (error) {
-      console.error("Error fetching ads:", error);
-      res.status(500).json({ message: "Failed to fetch ads" });
-    }
-  });
-
-  app.post("/api/ads/click", async (req, res) => {
-    try {
-      const { advertisementId, userAgent } = req.body;
-      
-      const click = await storage.trackAdClick({
-        advertisementId,
-        userAgent: userAgent || null,
-      });
-      
-      res.json(click);
-    } catch (error) {
-      console.error("Error tracking ad click:", error);
-      res.status(500).json({ message: "Failed to track click" });
+      console.error("Get ads error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
