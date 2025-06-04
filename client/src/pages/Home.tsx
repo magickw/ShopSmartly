@@ -261,7 +261,7 @@ export default function Home() {
             <CardContent>
               {recentScans.length > 0 ? (
                 <div className="space-y-2">
-                  {recentScans.slice(-3).reverse().map((scan) => (
+                  {recentScans.slice(-1).reverse().map((scan) => (
                     <div key={scan.id} className="relative group">
                       <Link href={`/product/${scan.barcode}`}>
                         <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
@@ -279,7 +279,7 @@ export default function Home() {
                       </Button>
                     </div>
                   ))}
-                  {recentScans.length > 3 && (
+                  {recentScans.length > 1 && (
                     <Link href="/history">
                       <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                         View all ({recentScans.length})
