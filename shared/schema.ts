@@ -21,6 +21,10 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  subscriptionTier: varchar("subscription_tier").default("free"), // free, premium, business
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  dailyScansCount: integer("daily_scans_count").default(0),
+  lastScanResetDate: timestamp("last_scan_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -44,6 +48,9 @@ export const retailers = pgTable("retailers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   logo: text("logo"),
+  affiliateProgram: boolean("affiliate_program").default(false),
+  affiliateCommissionRate: text("affiliate_commission_rate"), // e.g., "3.5%"
+  affiliateBaseUrl: text("affiliate_base_url"), // Base URL for affiliate links
 });
 
 export const prices = pgTable("prices", {
@@ -125,6 +132,63 @@ export const adClicks = pgTable("ad_clicks", {
   ipAddress: text("ip_address"),
 });
 
+// Affiliate tracking for monetization
+export const affiliateClicks = pgTable("affiliate_clicks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  retailerId: integer("retailer_id").notNull().references(() => retailers.id),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  affiliateUrl: text("affiliate_url").notNull(),
+  commissionRate: text("commission_rate"),
+  estimatedCommission: text("estimated_commission"),
+  conversionTracked: boolean("conversion_tracked").default(false),
+  actualCommission: text("actual_commission"),
+  commissionPaidAt: timestamp("commission_paid_at"),
+});
+
+// Subscription payments and revenue tracking
+export const subscriptionPayments = pgTable("subscription_payments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  planType: varchar("plan_type").notNull(), // premium, business
+  amount: text("amount").notNull(),
+  currency: varchar("currency").default("USD"),
+  paymentMethod: varchar("payment_method"), // stripe, paypal, etc.
+  paymentId: text("payment_id"), // External payment processor ID
+  status: varchar("status").default("pending"), // pending, completed, failed, refunded
+  subscriptionStartDate: timestamp("subscription_start_date").notNull(),
+  subscriptionEndDate: timestamp("subscription_end_date").notNull(),
+  isRecurring: boolean("is_recurring").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Revenue analytics and reporting
+export const revenueMetrics = pgTable("revenue_metrics", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull(),
+  affiliateRevenue: text("affiliate_revenue").default("0.00"),
+  subscriptionRevenue: text("subscription_revenue").default("0.00"),
+  adRevenue: text("ad_revenue").default("0.00"),
+  totalRevenue: text("total_revenue").default("0.00"),
+  activeSubscribers: integer("active_subscribers").default(0),
+  newSubscribers: integer("new_subscribers").default(0),
+  churnedSubscribers: integer("churned_subscribers").default(0),
+  affiliateClicks: integer("affiliate_clicks").default(0),
+  affiliateConversions: integer("affiliate_conversions").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Premium feature usage tracking
+export const featureUsage = pgTable("feature_usage", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  feature: varchar("feature").notNull(), // price_alerts, bulk_scan, analytics, api_access
+  usageCount: integer("usage_count").default(1),
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+  subscriptionTierAtUsage: varchar("subscription_tier_at_usage"),
+});
+
 // Relations
 export const productsRelations = relations(products, ({ many }) => ({
   prices: many(prices),
@@ -183,6 +247,35 @@ export const adClicksRelations = relations(adClicks, ({ one }) => ({
   }),
   user: one(users, {
     fields: [adClicks.userId],
+    references: [users.id],
+  }),
+}));
+
+export const affiliateClicksRelations = relations(affiliateClicks, ({ one }) => ({
+  user: one(users, {
+    fields: [affiliateClicks.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [affiliateClicks.productId],
+    references: [products.id],
+  }),
+  retailer: one(retailers, {
+    fields: [affiliateClicks.retailerId],
+    references: [retailers.id],
+  }),
+}));
+
+export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptionPayments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const featureUsageRelations = relations(featureUsage, ({ one }) => ({
+  user: one(users, {
+    fields: [featureUsage.userId],
     references: [users.id],
   }),
 }));
@@ -272,6 +365,39 @@ export type InsertAdvertisement = z.infer<typeof insertAdvertisementSchema>;
 export type AdClick = typeof adClicks.$inferSelect;
 export type InsertAdClick = z.infer<typeof insertAdClickSchema>;
 
+// Monetization type definitions
+export const insertAffiliateClickSchema = createInsertSchema(affiliateClicks).omit({
+  id: true,
+  clickedAt: true,
+});
+
+export const insertSubscriptionPaymentSchema = createInsertSchema(subscriptionPayments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRevenueMetricSchema = createInsertSchema(revenueMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFeatureUsageSchema = createInsertSchema(featureUsage).omit({
+  id: true,
+  lastUsedAt: true,
+});
+
+export type AffiliateClick = typeof affiliateClicks.$inferSelect;
+export type InsertAffiliateClick = z.infer<typeof insertAffiliateClickSchema>;
+
+export type SubscriptionPayment = typeof subscriptionPayments.$inferSelect;
+export type InsertSubscriptionPayment = z.infer<typeof insertSubscriptionPaymentSchema>;
+
+export type RevenueMetric = typeof revenueMetrics.$inferSelect;
+export type InsertRevenueMetric = z.infer<typeof insertRevenueMetricSchema>;
+
+export type FeatureUsage = typeof featureUsage.$inferSelect;
+export type InsertFeatureUsage = z.infer<typeof insertFeatureUsageSchema>;
+
 // Client-side types for API responses
 export interface ProductWithPrices extends Product {
   prices: (Price & { retailer: Retailer })[];
@@ -280,4 +406,35 @@ export interface ProductWithPrices extends Product {
 export interface ScanResult {
   product: ProductWithPrices;
   bestPrice: string;
+}
+
+// Monetization interfaces
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: string;
+  currency: string;
+  interval: "month" | "year";
+  features: string[];
+  dailyScanLimit?: number;
+  priceAlerts: boolean;
+  bulkScanning: boolean;
+  analytics: boolean;
+  apiAccess: boolean;
+}
+
+export interface RevenueAnalytics {
+  totalRevenue: string;
+  affiliateRevenue: string;
+  subscriptionRevenue: string;
+  adRevenue: string;
+  activeSubscribers: number;
+  conversionRate: number;
+  averageRevenuePerUser: string;
+  topAffiliatePartners: Array<{
+    retailer: string;
+    clicks: number;
+    conversions: number;
+    revenue: string;
+  }>;
 }
