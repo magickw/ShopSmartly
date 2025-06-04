@@ -123,6 +123,18 @@ export default function Home() {
             </Card>
           </Link>
 
+          <Link href="/analytics">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader className="text-center">
+                <BarChart3 className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                <CardTitle>Analytics</CardTitle>
+                <CardDescription>
+                  View shopping insights and trends
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
           <Link href="/scanner">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
               <CardHeader className="text-center">
