@@ -1,8 +1,9 @@
 import { useParams, useLocation } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3, Share2 } from "lucide-react";
+import { ArrowLeft, Heart, ShoppingCart, Leaf, BarChart3, Share2, MessageCircle, Mail, Copy } from "lucide-react";
+import { SiX, SiFacebook, SiWhatsapp, SiTelegram } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -15,28 +16,52 @@ export default function ProductDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [needsScan, setNeedsScan] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
-  const handleShare = async () => {
-    if (!scanResult?.product) return;
+  // Close share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setShowShareMenu(false);
+      }
+    };
 
+    if (showShareMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showShareMenu]);
+
+  const getShareData = () => {
+    if (!scanResult?.product) return null;
     const { product, bestPrice } = scanResult;
-    const shareData = {
+    return {
       title: `${product.name} - Price Comparison`,
       text: `Check out this product: ${product.name} ${product.brand ? `by ${product.brand}` : ''}\nBest price: ${bestPrice}\nBarcode: ${product.barcode}`,
       url: window.location.href
     };
+  };
+
+  const handleNativeShare = async () => {
+    const shareData = getShareData();
+    if (!shareData) return;
 
     try {
       if (navigator.share && navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
+        setShowShareMenu(false);
       } else {
-        // Fallback to clipboard
         const shareText = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
         await navigator.clipboard.writeText(shareText);
         toast({
           title: "Link copied!",
           description: "Product details copied to clipboard",
         });
+        setShowShareMenu(false);
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -46,6 +71,47 @@ export default function ProductDetail() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSocialShare = (platform: string) => {
+    const shareData = getShareData();
+    if (!shareData) return;
+
+    const encodedText = encodeURIComponent(shareData.text);
+    const encodedUrl = encodeURIComponent(shareData.url);
+    const encodedTitle = encodeURIComponent(shareData.title);
+
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(`${shareData.text}\n${shareData.url}`)}`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+        break;
+      case 'sms':
+        shareUrl = `sms:?body=${encodeURIComponent(`${shareData.text}\n${shareData.url}`)}`;
+        break;
+      case 'email':
+        shareUrl = `mailto:?subject=${encodedTitle}&body=${encodeURIComponent(`${shareData.text}\n\n${shareData.url}`)}`;
+        break;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, '_blank');
+      setShowShareMenu(false);
+    }
+  };
+
+  const handleShare = () => {
+    setShowShareMenu(!showShareMenu);
   };
 
   const { data: scanResult, isLoading, error } = useQuery<ScanResult>({
@@ -162,14 +228,94 @@ export default function ProductDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">Product Details</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleShare}
-          className="text-blue-600 mr-2"
-        >
-          <Share2 className="h-5 w-5" />
-        </Button>
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            className="text-blue-600 mr-2"
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+          
+          {showShareMenu && (
+            <div ref={shareMenuRef} className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50 min-w-[280px]">
+              <h3 className="font-semibold text-sm mb-3">Share Product</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNativeShare}
+                  className="flex items-center gap-2 justify-start"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy Link
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('whatsapp')}
+                  className="flex items-center gap-2 justify-start text-green-600"
+                >
+                  <SiWhatsapp className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('facebook')}
+                  className="flex items-center gap-2 justify-start text-blue-600"
+                >
+                  <SiFacebook className="h-4 w-4" />
+                  Facebook
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('twitter')}
+                  className="flex items-center gap-2 justify-start text-blue-400"
+                >
+                  <SiX className="h-4 w-4" />
+                  X (Twitter)
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('telegram')}
+                  className="flex items-center gap-2 justify-start text-blue-500"
+                >
+                  <SiTelegram className="h-4 w-4" />
+                  Telegram
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('sms')}
+                  className="flex items-center gap-2 justify-start text-green-500"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  SMS
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSocialShare('email')}
+                  className="flex items-center gap-2 justify-start text-gray-600"
+                  style={{ gridColumn: 'span 2' }}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="icon"
