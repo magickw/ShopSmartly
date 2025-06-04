@@ -42,6 +42,7 @@ function App() {
             <Router />
           </div>
           <BottomNavigation />
+          <ChatAssistant />
         </div>
         <Toaster />
       </TooltipProvider>
