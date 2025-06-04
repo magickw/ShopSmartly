@@ -100,6 +100,7 @@ export default function ShoppingList() {
       setNewItemName("");
       setNewItemBrand("");
       setNewItemQuantity(1);
+      setNewItemPrice("");
     },
     onError: () => {
       toast({ title: "Failed to add item", variant: "destructive" });
@@ -278,16 +279,28 @@ export default function ShoppingList() {
                     className="mt-1"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="item-quantity">Quantity</Label>
-                  <Input
-                    id="item-quantity"
-                    type="number"
-                    min="1"
-                    value={newItemQuantity}
-                    onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
-                    className="mt-1"
-                  />
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <Label htmlFor="item-quantity">Quantity</Label>
+                    <Input
+                      id="item-quantity"
+                      type="number"
+                      min="1"
+                      value={newItemQuantity}
+                      onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex-2">
+                    <Label htmlFor="item-price">Unit Price (Optional)</Label>
+                    <Input
+                      id="item-price"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(e.target.value)}
+                      placeholder="e.g., $2.99"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 <div className="flex space-x-2 pt-4">
                   <Button
