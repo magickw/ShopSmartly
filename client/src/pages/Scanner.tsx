@@ -26,6 +26,8 @@ export default function Scanner() {
 
   const handleManualSubmit = () => {
     if (manualBarcode.trim()) {
+      setShowManualEntry(false);
+      setManualBarcode("");
       setLocation(`/product/${manualBarcode.trim()}`);
     }
   };

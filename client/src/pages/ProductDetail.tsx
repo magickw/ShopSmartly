@@ -13,11 +13,12 @@ export default function ProductDetail() {
   const { toast } = useToast();
 
   const { data: scanResult, isLoading } = useQuery<ScanResult>({
-    queryKey: [`/api/scan`],
+    queryKey: [`/api/scan`, params.barcode],
     queryFn: async () => {
       const response = await apiRequest("POST", "/api/scan", { barcode: params.barcode });
       return response.json();
     },
+    enabled: !!params.barcode,
   });
 
   const addToFavoritesMutation = useMutation({
