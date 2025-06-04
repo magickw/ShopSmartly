@@ -13,7 +13,7 @@ export default function History() {
 
   const clearHistoryMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/history", "DELETE");
+      return apiRequest("DELETE", "/api/history");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/history"] });

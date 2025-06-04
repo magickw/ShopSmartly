@@ -38,7 +38,7 @@ export default function ChatAssistant() {
 
   const clearHistoryMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/chat/${userId}`, "DELETE");
+      return apiRequest("DELETE", `/api/chat/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat", userId] });
