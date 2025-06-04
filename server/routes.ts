@@ -4,25 +4,25 @@ import { storage } from "./storage";
 import { insertScanHistorySchema, insertFavoriteSchema, insertShoppingListItemSchema, insertProductSchema } from "@shared/schema";
 
 async function generateShoppingAssistantResponse(message: string): Promise<string> {
-  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   
-  if (!PERPLEXITY_API_KEY) {
-    return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. However, I need the Perplexity API key to provide real-time shopping advice. Please ask your administrator to configure it.";
+  if (!OPENAI_API_KEY) {
+    return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. However, I need the OpenAI API key to provide AI-powered shopping advice. Please ask your administrator to configure it.";
   }
 
   try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful shopping assistant. Provide concise, practical advice about products, prices, and shopping. Keep responses under 150 words.'
+            content: 'You are a helpful shopping assistant. Provide concise, practical advice about products, prices, shopping tips, and product recommendations. Keep responses under 150 words and be friendly and helpful.'
           },
           {
             role: 'user',
@@ -31,7 +31,7 @@ async function generateShoppingAssistantResponse(message: string): Promise<strin
         ],
         max_tokens: 150,
         temperature: 0.7,
-        stream: false
+        response_format: { type: "text" }
       })
     });
 
@@ -42,7 +42,7 @@ async function generateShoppingAssistantResponse(message: string): Promise<strin
     const data = await response.json();
     return data.choices[0]?.message?.content || "I'm here to help with your shopping needs!";
   } catch (error) {
-    console.error('Perplexity API error:', error);
+    console.error('OpenAI API error:', error);
     return "I'm your shopping assistant! I can help you find products, compare prices, and manage your shopping list. How can I assist you today?";
   }
 }
