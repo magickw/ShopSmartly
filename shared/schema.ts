@@ -74,6 +74,15 @@ export const shoppingListItems = pgTable("shopping_list_items", {
   addedAt: timestamp("added_at").defaultNow(),
 });
 
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  message: text("message").notNull(),
+  response: text("response"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  isUser: boolean("is_user").notNull(),
+});
+
 // Relations
 export const productsRelations = relations(products, ({ many }) => ({
   prices: many(prices),
@@ -137,6 +146,11 @@ export const insertShoppingListItemSchema = createInsertSchema(shoppingListItems
   addedAt: true,
 });
 
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  timestamp: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
@@ -162,6 +176,9 @@ export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 export type InsertShoppingListItem = z.infer<typeof insertShoppingListItemSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 // Client-side types for API responses
 export interface ProductWithPrices extends Product {

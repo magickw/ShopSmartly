@@ -56,6 +56,10 @@ export interface IStorage {
   updateShoppingListItem(id: number, updates: Partial<ShoppingListItem>): Promise<ShoppingListItem>;
   removeShoppingListItem(id: number): Promise<void>;
   getShoppingList(): Promise<(ShoppingListItem & { product: ProductWithPrices })[]>;
+  
+  // Chat Messages
+  addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatHistory(userId: string): Promise<ChatMessage[]>;
 }
 
 export class DatabaseStorage implements IStorage {
