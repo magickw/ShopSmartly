@@ -121,11 +121,27 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
   if (error) {
     return (
       <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white">
-        <div className="text-center p-4">
-          <p className="mb-4">{error}</p>
-          <Button onClick={onClose} variant="outline" className="text-black">
-            Close Scanner
-          </Button>
+        <div className="text-center p-6 max-w-sm">
+          <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-semibold mb-2">Camera Not Available</h3>
+          <p className="text-gray-300 mb-6 text-sm">
+            Camera access is required for barcode scanning. Please check your browser permissions or try the test scan feature.
+          </p>
+          <div className="space-y-3">
+            <Button 
+              onClick={simulateScan}
+              className="w-full bg-ios-blue hover:bg-ios-blue/90 text-white"
+            >
+              Test Scan (Demo)
+            </Button>
+            <Button 
+              onClick={onClose} 
+              variant="outline" 
+              className="w-full text-white border-white hover:bg-white hover:text-black"
+            >
+              Close Scanner
+            </Button>
+          </div>
         </div>
       </div>
     );
