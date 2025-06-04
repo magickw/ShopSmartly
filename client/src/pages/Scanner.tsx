@@ -2,14 +2,18 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { Camera, QrCode, ChevronRight } from "lucide-react";
+import { Camera, QrCode, ChevronRight, Keyboard } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ScanHistory } from "@shared/schema";
 
 export default function Scanner() {
   const [, setLocation] = useLocation();
   const [showScanner, setShowScanner] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
 
   const { data: recentScans = [] } = useQuery<ScanHistory[]>({
     queryKey: ["/api/history"],
@@ -18,6 +22,12 @@ export default function Scanner() {
   const handleScanSuccess = (barcode: string) => {
     setShowScanner(false);
     setLocation(`/product/${barcode}`);
+  };
+
+  const handleManualSubmit = () => {
+    if (manualBarcode.trim()) {
+      setLocation(`/product/${manualBarcode.trim()}`);
+    }
   };
 
   return (
@@ -62,6 +72,13 @@ export default function Scanner() {
           Start Scanning
         </Button>
         <Button
+          onClick={() => setShowManualEntry(!showManualEntry)}
+          className="w-full bg-ios-green hover:bg-ios-green/90 text-white py-4 rounded-xl text-lg font-medium h-auto"
+        >
+          <Keyboard className="mr-2 h-5 w-5" />
+          Enter Barcode Manually
+        </Button>
+        <Button
           onClick={() => setLocation("/qr-generator")}
           className="w-full bg-ios-orange hover:bg-ios-orange/90 text-white py-4 rounded-xl text-lg font-medium h-auto"
         >
@@ -69,6 +86,36 @@ export default function Scanner() {
           Generate QR Code
         </Button>
       </div>
+
+      {/* Manual Entry Form */}
+      {showManualEntry && (
+        <Card className="mt-6 bg-white border border-gray-100">
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="manual-barcode" className="text-sm font-medium">
+                  Barcode Number
+                </Label>
+                <Input
+                  id="manual-barcode"
+                  type="text"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  placeholder="Enter barcode (e.g., 123456789012)"
+                  className="mt-1 rounded-xl border-gray-200"
+                />
+              </div>
+              <Button
+                onClick={handleManualSubmit}
+                disabled={!manualBarcode.trim()}
+                className="w-full bg-ios-blue hover:bg-ios-blue/90 text-white py-3 rounded-xl font-medium"
+              >
+                Search Product
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Scans */}
       {recentScans.length > 0 && (

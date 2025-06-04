@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,6 +48,42 @@ export const shoppingListItems = pgTable("shopping_list_items", {
   completed: boolean("completed").default(false),
   addedAt: timestamp("added_at").defaultNow(),
 });
+
+// Relations
+export const productsRelations = relations(products, ({ many }) => ({
+  prices: many(prices),
+  favorites: many(favorites),
+  shoppingListItems: many(shoppingListItems),
+}));
+
+export const retailersRelations = relations(retailers, ({ many }) => ({
+  prices: many(prices),
+}));
+
+export const pricesRelations = relations(prices, ({ one }) => ({
+  product: one(products, {
+    fields: [prices.productId],
+    references: [products.id],
+  }),
+  retailer: one(retailers, {
+    fields: [prices.retailerId],
+    references: [retailers.id],
+  }),
+}));
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  product: one(products, {
+    fields: [favorites.productId],
+    references: [products.id],
+  }),
+}));
+
+export const shoppingListItemsRelations = relations(shoppingListItems, ({ one }) => ({
+  product: one(products, {
+    fields: [shoppingListItems.productId],
+    references: [products.id],
+  }),
+}));
 
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,

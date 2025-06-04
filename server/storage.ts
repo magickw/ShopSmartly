@@ -19,6 +19,8 @@ import {
   type InsertShoppingListItem,
   type ProductWithPrices,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Products
@@ -46,6 +48,146 @@ export interface IStorage {
   updateShoppingListItem(id: number, updates: Partial<ShoppingListItem>): Promise<ShoppingListItem>;
   removeShoppingListItem(id: number): Promise<void>;
   getShoppingList(): Promise<(ShoppingListItem & { product: ProductWithPrices })[]>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getProductByBarcode(barcode: string): Promise<ProductWithPrices | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.barcode, barcode));
+    if (!product) return undefined;
+
+    const productPrices = await db
+      .select({
+        id: prices.id,
+        productId: prices.productId,
+        retailerId: prices.retailerId,
+        price: prices.price,
+        stock: prices.stock,
+        url: prices.url,
+        retailer: retailers,
+      })
+      .from(prices)
+      .innerJoin(retailers, eq(prices.retailerId, retailers.id))
+      .where(eq(prices.productId, product.id));
+
+    return {
+      ...product,
+      prices: productPrices,
+    };
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db
+      .insert(products)
+      .values(product)
+      .returning();
+    return newProduct;
+  }
+
+  async getAllRetailers(): Promise<Retailer[]> {
+    return await db.select().from(retailers);
+  }
+
+  async createRetailer(retailer: InsertRetailer): Promise<Retailer> {
+    const [newRetailer] = await db
+      .insert(retailers)
+      .values(retailer)
+      .returning();
+    return newRetailer;
+  }
+
+  async createPrice(price: InsertPrice): Promise<Price> {
+    const [newPrice] = await db
+      .insert(prices)
+      .values(price)
+      .returning();
+    return newPrice;
+  }
+
+  async addScanHistory(scan: InsertScanHistory): Promise<ScanHistory> {
+    const [newScan] = await db
+      .insert(scanHistory)
+      .values(scan)
+      .returning();
+    return newScan;
+  }
+
+  async getScanHistory(): Promise<ScanHistory[]> {
+    return await db
+      .select()
+      .from(scanHistory)
+      .orderBy(scanHistory.scannedAt);
+  }
+
+  async addFavorite(favorite: InsertFavorite): Promise<Favorite> {
+    const [newFavorite] = await db
+      .insert(favorites)
+      .values(favorite)
+      .returning();
+    return newFavorite;
+  }
+
+  async removeFavorite(productId: number): Promise<void> {
+    await db.delete(favorites).where(eq(favorites.productId, productId));
+  }
+
+  async getFavorites(): Promise<(Favorite & { product: ProductWithPrices })[]> {
+    const favoritesList = await db.select().from(favorites);
+    const result = [];
+
+    for (const favorite of favoritesList) {
+      const product = await this.getProductByBarcode(
+        (await db.select().from(products).where(eq(products.id, favorite.productId)))[0]?.barcode || ""
+      );
+      if (product) {
+        result.push({
+          ...favorite,
+          product,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  async addShoppingListItem(item: InsertShoppingListItem): Promise<ShoppingListItem> {
+    const [newItem] = await db
+      .insert(shoppingListItems)
+      .values(item)
+      .returning();
+    return newItem;
+  }
+
+  async updateShoppingListItem(id: number, updates: Partial<ShoppingListItem>): Promise<ShoppingListItem> {
+    const [updatedItem] = await db
+      .update(shoppingListItems)
+      .set(updates)
+      .where(eq(shoppingListItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async removeShoppingListItem(id: number): Promise<void> {
+    await db.delete(shoppingListItems).where(eq(shoppingListItems.id, id));
+  }
+
+  async getShoppingList(): Promise<(ShoppingListItem & { product: ProductWithPrices })[]> {
+    const items = await db.select().from(shoppingListItems);
+    const result = [];
+
+    for (const item of items) {
+      const product = await this.getProductByBarcode(
+        (await db.select().from(products).where(eq(products.id, item.productId)))[0]?.barcode || ""
+      );
+      if (product) {
+        result.push({
+          ...item,
+          product,
+        });
+      }
+    }
+
+    return result;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -264,4 +406,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
