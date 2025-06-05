@@ -87,6 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const createdProduct = await storage.createProduct(productData);
           product = { ...createdProduct, prices: [] };
           
+          // Store pricing data from API results
           if (apiResult.prices && apiResult.prices.length > 0) {
             console.log(`Processing ${apiResult.prices.length} prices for storage`);
             for (const priceInfo of apiResult.prices) {
@@ -115,11 +116,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 url: priceInfo.url || null
               });
             }
-            
-            console.log(`Refreshing product data after adding prices`);
-            product = await storage.getProductByBarcode(barcode);
-            console.log(`Product after refresh:`, JSON.stringify(product, null, 2));
           }
+          
+          // Refresh product with prices
+          product = await storage.getProductByBarcode(barcode);
+        }
+      } else if (product.prices.length === 0) {
+        // Product exists but has no prices, try to fetch and add them
+        console.log(`Product exists but has no prices, fetching pricing data for barcode: ${barcode}`);
+        const apiResult = await fetchProductData(barcode);
+        
+        if (apiResult.prices && apiResult.prices.length > 0) {
+          await storePricingData(product, apiResult.prices);
+          product = await storage.getProductByBarcode(barcode);
         }
       }
       
