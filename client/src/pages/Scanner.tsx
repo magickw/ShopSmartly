@@ -58,7 +58,7 @@ export default function Scanner() {
     <div className="px-4">
       {/* Header */}
       <div className="py-3 border-b border-gray-100">
-        <h1 className="text-2xl font-bold text-center">PriceScan</h1>
+        <h1 className="text-2xl font-bold text-center">ShopSmartly</h1>
       </div>
 
 
