@@ -81,19 +81,6 @@ export async function fetchFromUPCItemDB(barcode: string): Promise<BarcodeApiRes
         },
         prices: prices
       };
-      
-      return {
-        success: true,
-        product: {
-          name: item.title || "Unknown Product",
-          brand: item.brand || undefined,
-          description: item.description || undefined,
-          imageUrl: item.images && item.images.length > 0 ? item.images[0] : undefined,
-          category: item.category || undefined,
-          upc: barcode
-        },
-        prices: prices
-      };
     }
 
     return { success: false, error: "Product not found in UPC database" };
