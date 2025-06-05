@@ -88,11 +88,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           product = { ...createdProduct, prices: [] };
           
           if (apiResult.prices && apiResult.prices.length > 0) {
+            console.log(`Processing ${apiResult.prices.length} prices for storage`);
             for (const priceInfo of apiResult.prices) {
+              console.log(`Processing price:`, priceInfo);
               let retailers = await storage.getAllRetailers();
               let retailer = retailers.find(r => r.name === priceInfo.retailer);
               
               if (!retailer) {
+                console.log(`Creating new retailer: ${priceInfo.retailer}`);
                 retailer = await storage.createRetailer({
                   name: priceInfo.retailer,
                   logo: priceInfo.retailer.charAt(0),
@@ -100,10 +103,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   affiliateCommissionRate: null,
                   affiliateBaseUrl: null
                 });
+                console.log(`Created retailer:`, retailer);
               }
 
+              console.log(`Creating price record for product ${createdProduct.id}, retailer ${retailer.id}`);
               await storage.createPrice({
-                productId: product.id,
+                productId: createdProduct.id,
                 retailerId: retailer.id,
                 price: priceInfo.price,
                 stock: priceInfo.availability,
@@ -111,7 +116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
             
+            console.log(`Refreshing product data after adding prices`);
             product = await storage.getProductByBarcode(barcode);
+            console.log(`Product after refresh:`, JSON.stringify(product, null, 2));
           }
         }
       }
