@@ -349,7 +349,13 @@ export async function fetchProductData(barcode: string): Promise<{
   // Try multiple product databases
   const upcResult = await fetchFromUPCItemDB(barcode);
   results.push(upcResult);
-  if (upcResult.success) sources.push("UPC Database");
+  if (upcResult.success) {
+    sources.push("UPC Database");
+    // Add pricing data from UPC Item DB if available
+    if (upcResult.prices) {
+      prices.push(...upcResult.prices);
+    }
+  }
 
   const barcodeLookupResult = await fetchFromBarcodeLookup(barcode);
   results.push(barcodeLookupResult);
