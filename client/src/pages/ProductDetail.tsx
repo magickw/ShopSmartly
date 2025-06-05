@@ -118,7 +118,7 @@ export default function ProductDetail() {
   const { data: scanResult, isLoading, error } = useQuery<ScanResult>({
     queryKey: [`/api/products`, params.barcode],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/products/${params.barcode}?addToHistory=true`);
+      const response = await apiRequest("GET", `/api/products/${params.barcode}`);
       return response.json();
     },
     enabled: !!params.barcode,

@@ -8,6 +8,7 @@ import BarcodeScanner from "@/components/BarcodeScanner";
 import QuickShareButton from "@/components/QuickShareButton";
 import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { ScanHistory } from "@shared/schema";
@@ -31,12 +32,22 @@ export default function Scanner() {
     setLocation(`/product/${barcode}`);
   };
 
-  const handleManualSubmit = () => {
+  const handleManualSubmit = async () => {
     if (!manualBarcode.trim()) return;
     
+    const barcode = manualBarcode.trim();
     setShowManualEntry(false);
     setManualBarcode("");
-    setLocation(`/product/${manualBarcode.trim()}`);
+    
+    // Add to scan history when manually searching
+    try {
+      await apiRequest("GET", `/api/products/${barcode}?addToHistory=true`);
+    } catch (error) {
+      // Continue to product page even if history add fails
+      console.log("Failed to add to history:", error);
+    }
+    
+    setLocation(`/product/${barcode}`);
   };
 
   const handleStartScanning = () => {
