@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import QuickShareButton from "@/components/QuickShareButton";
-import { Camera, QrCode, ChevronRight, Keyboard, Coffee, Heart, Lock } from "lucide-react";
+import {
+  Camera,
+  QrCode,
+  ChevronRight,
+  Keyboard,
+  Coffee,
+  Heart,
+  Lock,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,8 +33,6 @@ export default function Scanner() {
     queryKey: ["/api/history"],
   });
 
-
-
   const handleScanSuccess = (barcode: string) => {
     setShowScanner(false);
     setLocation(`/product/${barcode}`);
@@ -34,11 +40,11 @@ export default function Scanner() {
 
   const handleManualSubmit = async () => {
     if (!manualBarcode.trim()) return;
-    
+
     const barcode = manualBarcode.trim();
     setShowManualEntry(false);
     setManualBarcode("");
-    
+
     // Add to scan history when manually searching
     try {
       await apiRequest("GET", `/api/products/${barcode}?addToHistory=true`);
@@ -46,7 +52,7 @@ export default function Scanner() {
       // Continue to product page even if history add fails
       console.log("Failed to add to history:", error);
     }
-    
+
     setLocation(`/product/${barcode}`);
   };
 
@@ -60,8 +66,6 @@ export default function Scanner() {
       <div className="py-3 border-b border-gray-100">
         <h1 className="text-2xl font-bold text-center">ShopSmartly</h1>
       </div>
-
-
 
       {/* Camera/Scanner Area */}
       <div className="relative bg-black h-80 mt-6 rounded-xl overflow-hidden">
@@ -82,7 +86,9 @@ export default function Scanner() {
               </div>
             </div>
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-              <p className="text-white text-sm text-center">Position barcode within the frame</p>
+              <p className="text-white text-sm text-center">
+                Position barcode within the frame
+              </p>
             </div>
           </div>
         )}
@@ -157,34 +163,44 @@ export default function Scanner() {
             )}
           </div>
           <div className="space-y-3">
-            {recentScans.slice(-3).reverse().map((scan) => (
-              <div key={scan.id} className="relative group">
-                <Link href={`/product/${scan.barcode}`}>
-                  <Card className="bg-white border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <CardContent className="p-4 flex items-center">
-                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
-                        <span className="text-xs font-medium text-gray-500">IMG</span>
-                      </div>
-                      <div className="flex-1 pr-8">
-                        <h3 className="font-medium">{scan.productName}</h3>
-                        <p className="text-sm text-gray-500">Scanned: {scan.scannedAt ? new Date(scan.scannedAt).toLocaleDateString() : 'Recently'}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
-                    </CardContent>
-                  </Card>
-                </Link>
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <QuickShareButton
-                    productName={scan.productName}
-                    barcode={scan.barcode}
-                    bestPrice={scan.bestPrice || undefined}
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 bg-white/80 hover:bg-white border border-gray-200"
-                  />
+            {recentScans
+              .slice(-3)
+              .reverse()
+              .map((scan) => (
+                <div key={scan.id} className="relative group">
+                  <Link href={`/product/${scan.barcode}`}>
+                    <Card className="bg-white border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <CardContent className="p-4 flex items-center">
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
+                          <span className="text-xs font-medium text-gray-500">
+                            IMG
+                          </span>
+                        </div>
+                        <div className="flex-1 pr-8">
+                          <h3 className="font-medium">{scan.productName}</h3>
+                          <p className="text-sm text-gray-500">
+                            Scanned:{" "}
+                            {scan.scannedAt
+                              ? new Date(scan.scannedAt).toLocaleDateString()
+                              : "Recently"}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <QuickShareButton
+                      productName={scan.productName}
+                      barcode={scan.barcode}
+                      bestPrice={scan.bestPrice || undefined}
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 bg-white/80 hover:bg-white border border-gray-200"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
@@ -197,7 +213,9 @@ export default function Scanner() {
             <span className="text-sm text-gray-600">Support this app</span>
           </div>
           <Button
-            onClick={() => window.open('https://buymeacoffee.com/bfguo', '_blank')}
+            onClick={() =>
+              window.open("https://buymeacoffee.com/bfguo", "_blank")
+            }
             className="bg-yellow-400 hover:bg-yellow-500 text-black font-medium py-3 px-6 rounded-xl transition-colors"
           >
             <Coffee className="h-4 w-4 mr-2" />
@@ -206,6 +224,18 @@ export default function Scanner() {
           <p className="text-xs text-gray-500 mt-2">
             Help keep this app free and improve features
           </p>
+          {/* Developer Attribution */}
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Developed by{" "}
+              <a
+                href="https://github.com/magickw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              >
+                Baofeng Guo
+              </a>
+            </p>
         </div>
       </div>
     </div>
