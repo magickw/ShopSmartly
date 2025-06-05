@@ -45,22 +45,11 @@ async function generateShoppingAssistantResponse(message: string): Promise<strin
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Mock auth route for testing
+  // User authentication endpoint - returns null when no user is authenticated
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      res.json({
-        id: "test-user",
-        email: "test@example.com",
-        firstName: "Test",
-        lastName: "User",
-        profileImageUrl: null,
-        subscriptionTier: "free",
-        subscriptionExpiresAt: null,
-        dailyScansCount: 5,
-        lastScanResetDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      // Return null to indicate no user is currently authenticated
+      res.json(null);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
