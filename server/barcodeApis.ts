@@ -181,6 +181,79 @@ export async function fetchFromOpenFoodFacts(barcode: string): Promise<BarcodeAp
   }
 }
 
+// Barcode Lookup API - Requires API key
+export async function fetchFromBarcodeLookup(barcode: string): Promise<BarcodeApiResponse> {
+  try {
+    const apiKey = process.env.BARCODE_LOOKUP_API_KEY;
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "BARCODE_LOOKUP_API_KEY not configured"
+      };
+    }
+
+    const response = await fetch(`https://api.barcodelookup.com/v3/products?barcode=${barcode}&formatted=y&key=${apiKey}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Smart Shopping Assistant'
+      }
+    });
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Barcode Lookup API error: ${response.status}`
+      };
+    }
+
+    const data = await response.json();
+    
+    if (!data.products || data.products.length === 0) {
+      return {
+        success: false,
+        error: "Product not found in Barcode Lookup"
+      };
+    }
+
+    const product = data.products[0];
+    const prices: PriceInfo[] = [];
+    
+    // Extract store prices if available
+    if (product.stores && Array.isArray(product.stores)) {
+      for (const store of product.stores) {
+        if (store.store_name && store.store_price) {
+          prices.push({
+            retailer: store.store_name,
+            price: store.store_price,
+            currency: "USD",
+            availability: "Available",
+            url: store.product_url || undefined
+          });
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      product: {
+        name: product.title || product.product_name || "Unknown Product",
+        brand: product.brand || product.manufacturer || undefined,
+        description: product.description || undefined,
+        imageUrl: product.images && product.images.length > 0 ? product.images[0] : undefined,
+        category: product.category || undefined,
+        upc: barcode
+      },
+      prices: prices.length > 0 ? prices : undefined
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Barcode Lookup fetch error: ${(error as Error).message}`
+    };
+  }
+}
+
 // Walmart Open API - Requires API key
 export async function fetchWalmartPrices(upc: string): Promise<PriceInfo[]> {
   const apiKey = process.env.WALMART_API_KEY;
@@ -215,7 +288,7 @@ export async function fetchWalmartPrices(upc: string): Promise<PriceInfo[]> {
 
     return [];
   } catch (error) {
-    console.error(`Walmart API error: ${error.message}`);
+    console.error(`Walmart API error: ${(error as Error).message}`);
     return [];
   }
 }
@@ -254,7 +327,7 @@ export async function fetchTargetPrices(upc: string): Promise<PriceInfo[]> {
 
     return [];
   } catch (error) {
-    console.error(`Target API error: ${error.message}`);
+    console.error(`Target API error: ${(error as Error).message}`);
     return [];
   }
 }
@@ -290,6 +363,16 @@ export async function fetchProductData(barcode: string): Promise<{
   const upcResult = await fetchFromUPCItemDB(barcode);
   results.push(upcResult);
   if (upcResult.success) sources.push("UPC Database");
+
+  const barcodeLookupResult = await fetchFromBarcodeLookup(barcode);
+  results.push(barcodeLookupResult);
+  if (barcodeLookupResult.success) {
+    sources.push("Barcode Lookup");
+    // Add pricing data from Barcode Lookup if available
+    if (barcodeLookupResult.prices) {
+      prices.push(...barcodeLookupResult.prices);
+    }
+  }
 
   const foodResult = await fetchFromOpenFoodFacts(barcode);
   results.push(foodResult);
